@@ -1,0 +1,24 @@
+{
+	"compilerOptions": {
+	  "module": "Node16", // If you're using Node 16, this is fine.
+	  "target": "ES2022",
+	  "lib": ["ES2022"],
+	  "sourceMap": true,
+	  "rootDir": "src",
+	  "strict": true, // Enables all strict type-checking options
+	  "esModuleInterop": true, // Ensures compatibility with CommonJS and ES modules
+	  "skipLibCheck": true, // Skip type checking of declaration files
+	  "moduleResolution": "Node16", // Use Node16 module resolution strategy
+	  "resolveJsonModule": true, // Allow importing .json files
+	  "outDir": "./dist", // Directory for compiled files
+	  "baseUrl": ".", // Base directory for resolving non-relative modules
+	  "paths": {
+		"*": ["node_modules/*"] // Ensure it can resolve from node_modules
+	  },
+	  "types": ["node", "jest"],
+	  "isolatedModules": true 
+	},
+	"include": ["src/**/*", "test/**/*"], // Include all files in the src folder
+	"exclude": ["node_modules", "dist"] // Exclude these directories from compilation
+  }
+  

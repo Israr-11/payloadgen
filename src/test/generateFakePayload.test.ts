@@ -1,4 +1,4 @@
-import { generateFakePayload } from '../core/faker'; 
+import { generateFakePayload } from '../core/faker';
 import { SchemaField } from '../types/index';
 
 describe('generateFakePayload', () => {
@@ -24,8 +24,8 @@ describe('generateFakePayload', () => {
     expect(result).toHaveProperty('unknownKey');
     expect(typeof result.unknownKey).toBe('string');
   });
-  
-  // Add a new test for different data types
+
+  // ADDING A NEW TEST FOR DIFFERENT DATA TYPES
   it('should generate appropriate values based on field type', () => {
     const keys: SchemaField[] = [
       { name: 'stringField', type: 'String' },
@@ -40,13 +40,13 @@ describe('generateFakePayload', () => {
     expect(typeof result.stringField).toBe('string');
     expect(typeof result.numberField).toBe('number');
     expect(typeof result.booleanField).toBe('boolean');
-    expect(typeof result.dateField).toBe('string'); // ISO date string
+    expect(typeof result.dateField).toBe('string');
     expect(Array.isArray(result.arrayField)).toBe(true);
     expect(typeof result.objectField).toBe('object');
     expect(result.objectField).not.toBeNull();
   });
-  
-  // Add a test for enum values
+
+  // ADDING A TEST FOR ENUM VALUES
   it('should use enum values when available', () => {
     const keys: SchemaField[] = [
       { name: 'role', type: 'String', enum: ['admin', 'user', 'guest'] }
@@ -55,5 +55,30 @@ describe('generateFakePayload', () => {
 
     expect(result).toHaveProperty('role');
     expect(['admin', 'user', 'guest']).toContain(result.role);
+  });
+
+  // TESTING FOR NESTED FIELDS
+  it('should handle nested fields correctly', () => {
+    const keys: SchemaField[] = [
+      {
+        name: 'address',
+        type: 'Object',
+        nestedFields: [
+          { name: 'street', type: 'String' },
+          { name: 'city', type: 'String' },
+          { name: 'zipcode', type: 'String' }
+        ]
+      }
+    ];
+    const result = generateFakePayload(keys);
+
+    expect(result).toHaveProperty('address');
+    expect(typeof result.address).toBe('object');
+    expect(result.address).toHaveProperty('street');
+    expect(result.address).toHaveProperty('city');
+    expect(result.address).toHaveProperty('zipcode');
+    expect(typeof result.address.street).toBe('string');
+    expect(typeof result.address.city).toBe('string');
+    expect(typeof result.address.zipcode).toBe('string');
   });
 });

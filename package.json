@@ -1,9 +1,10 @@
 {
   "name": "api-payload-generator",
-  "displayName": "API Payload Generator",
+  "displayName": "PayloadGen ❴ ⚡ ❵",
   "publisher": "Israr",
-  "description": "Generate realistic fake request bodies in Express (JS or TS)",
+  "description": "Generate realistic dummy request bodies in Express (JS or TS) for MongoDB based schemas",
   "version": "0.0.1",
+
   "engines": {
     "vscode": "^1.99.0"
   },
@@ -12,11 +13,15 @@
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
-  "contributes": {
+ "contributes": {
     "commands": [
       {
+        "command": "api-payload-generator.showDocumentation",
+        "title": "PayloadGen ❴ ⚡ ❵: Show Documentation"
+      },
+      {
         "command": "extension.generateApiPayload",
-        "title": "Generate API Payload"
+        "title": "PayloadGen ❴ ⚡ ❵"
       }
     ],
     "menus": {
@@ -27,7 +32,8 @@
           "group": "navigation"
         }
       ]
-    }
+      }
+    
   },
   "scripts": {
     "vscode:prepublish": "npm run package",

@@ -1,8 +1,7 @@
-// __mocks__/vscode.ts
 import 'jest';
 
 export const window = {
-    // Return the input message instead of always returning "OK"
+    // RETURNING THE INPUT MESSAGE INSTEAD OF "OK"
     showInformationMessage: jest.fn().mockImplementation((message: any) => Promise.resolve(message)),
 };
 

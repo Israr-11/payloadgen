@@ -4,9 +4,11 @@ export class PayloadPanel {
   public static currentPanel: PayloadPanel | undefined;
   private readonly _panel: vscode.WebviewPanel;
   private _disposables: vscode.Disposable[] = [];
+  private _extensionUri: vscode.Uri;
 
   private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
     this._panel = panel;
+    this._extensionUri = extensionUri;
     this._panel.onDidDispose(() => this.dispose(), null, this._disposables);
     this._panel.webview.html = this._getWebviewContent('');
   }
@@ -16,20 +18,22 @@ export class PayloadPanel {
       ? vscode.window.activeTextEditor.viewColumn
       : undefined;
 
-    // If we already have a panel, show it
     if (PayloadPanel.currentPanel) {
       PayloadPanel.currentPanel._panel.reveal(column);
       return PayloadPanel.currentPanel;
     }
 
-    // Otherwise, create a new panel
+    // CREATING A NEW PANEL WITH EMOJI IN THE TITLE
     const panel = vscode.window.createWebviewPanel(
       'apiPayloadGenerator',
-      'API Payload',
+      'PayloadGen ❴ ⚡ ❵',
       column || vscode.ViewColumn.One,
       {
         enableScripts: true,
         retainContextWhenHidden: true,
+        localResourceRoots: [
+          vscode.Uri.joinPath(extensionUri, 'resources')
+        ]
       }
     );
 
@@ -38,50 +42,54 @@ export class PayloadPanel {
   }
 
   public updatePayload(payload: any) {
-    // Handle different payload types appropriately
+    // HANDLING DIFFERENT PAYLOAD TYPES APPROPRIATELY
     let processedPayload: string;
-    
+
     if (typeof payload === 'string') {
-      // If it's already a string, use it directly
+      // IF PAYLOAD IS STRING, USE IT DIRECTLY
       processedPayload = payload;
     } else {
-      // If it's an object, stringify it once with proper formatting
+      // IF IT IS OBJECT, STRINGIFY IT WITH PROPER FORMATTING
       processedPayload = JSON.stringify(payload, null, 2);
     }
-    
+
     this._panel.webview.html = this._getWebviewContent(processedPayload);
   }
 
-  // Add a public method to set up message handling
+  // ADDING A PUBLIC METHOD TO SET UP MESSAGE HANDLING
   public setMessageHandler(handler: (message: any) => void) {
     this._panel.webview.onDidReceiveMessage(handler, undefined, this._disposables);
   }
 
+  public onDidReceiveMessage(handler: (message: any) => void) {
+    this._panel.webview.onDidReceiveMessage(handler, undefined, this._disposables);
+  }
+
   private _getWebviewContent(payload: string) {
-    // Check if this is a loading message
+    // CHECKING IF THE MESSAGE IS LOADING
     const isLoading = payload.startsWith("Loading...");
-    
-    // Only try to format if it's not a loading message
+
+    // ONLY TRYING TO FORMAT THE MESSAGE IF IT IS NOT A LOADING MESSAGE
     let formattedPayload = payload;
-    
+
     if (!isLoading && payload) {
       try {
-        // Only try to parse if it looks like JSON
+
         if (payload.trim().startsWith('{') || payload.trim().startsWith('[')) {
-          // Parse and re-stringify to ensure proper formatting
+          // PARSING AND RE-STRINGIFYING TO ENSURE PROPER FORMATTING
           const jsonObj = JSON.parse(payload);
           formattedPayload = JSON.stringify(jsonObj, null, 2);
         }
       } catch (e) {
-        // If parsing fails, use the original payload
+        // IF PARSING FAILS, USE THE ORIGINAL PAYLOAD
         console.error("Failed to parse JSON:", e);
         formattedPayload = payload;
       }
     }
 
-    // Apply syntax highlighting to the JSON
-    const displayContent = isLoading 
-      ? formattedPayload 
+    // APPLYING SYNTAX HIGHLIGHTING TO THE JSON
+    const displayContent = isLoading
+      ? formattedPayload
       : this._highlightJson(formattedPayload);
 
     return `<!DOCTYPE html>
@@ -89,7 +97,7 @@ export class PayloadPanel {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>API Payload</title>
+        <title>PayloadGen</title>
         <style>
             body {
                 font-family: var(--vscode-editor-font-family);
@@ -139,9 +147,10 @@ export class PayloadPanel {
                 margin-bottom: 16px;
                 border-bottom: 1px solid var(--vscode-panel-border);
                 padding-bottom: 8px;
+                display: flex;
+                align-items: center;
             }
             
-            /* JSON Syntax Highlighting */
             .json-string { 
                 color: #ce9178; 
             }
@@ -157,14 +166,13 @@ export class PayloadPanel {
                 font-weight: bold;
             }
             .json-key { 
-                color: #9cdcfe; 
+                color: #0078d7; 
                 font-weight: bold;
             }
             .json-punctuation { 
                 color: #d4d4d4; 
             }
             
-            /* Animation for copy feedback */
             @keyframes flash {
                 0% { opacity: 0; }
                 50% { opacity: 1; }
@@ -183,7 +191,6 @@ export class PayloadPanel {
                 animation: flash 1.5s ease-out;
             }
             
-            /* Loading spinner */
             .spinner {
                 border: 4px solid rgba(0, 0, 0, 0.1);
                 width: 36px;
@@ -205,24 +212,22 @@ export class PayloadPanel {
             <button id="saveBtn">💾 Save to File</button>` : ''}
         </div>
         <div class="container">
-            <h2>Generated API Payload</h2>
-            ${isLoading ? 
-                `<p>${formattedPayload}</p><div class="spinner"></div>` : 
-                `<pre id="payload">${displayContent}</pre>`
-            }
+            <h2>Generated API Payload ❴ ⚡ ❵</h2>
+            ${isLoading ?
+        `<p>${formattedPayload}</p><div class="spinner"></div>` :
+        `<pre id="payload">${displayContent}</pre>`
+      }
         </div>
         <div class="copy-feedback" id="copyFeedback">Copied to clipboard!</div>
         <script>
             const vscode = acquireVsCodeApi();
             
             ${!isLoading ? `
-            // Store the raw payload for copying and saving
             const rawPayload = ${JSON.stringify(formattedPayload)};
             
             document.getElementById('copyBtn').addEventListener('click', () => {
                 navigator.clipboard.writeText(rawPayload)
                     .then(() => {
-                        // Show visual feedback
                         const feedback = document.getElementById('copyFeedback');
                         feedback.style.display = 'block';
                         setTimeout(() => {
@@ -247,18 +252,16 @@ export class PayloadPanel {
     </html>`;
   }
 
-  // Add this method to highlight JSON syntax
+  // METHOD TO HIGHLIGHT JSON SYNTAX
   private _highlightJson(json: string): string {
-    if (!json) return '';
-    
-    // Replace with HTML for syntax highlighting
+    if (!json) { return ''; }
+
     return json
       .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, (match) => {
         let cls = 'json-number';
         if (/^"/.test(match)) {
           if (/:$/.test(match)) {
             cls = 'json-key';
-            // Remove the colon from the key
             match = match.replace(/:$/, '');
           } else {
             cls = 'json-string';
@@ -268,15 +271,15 @@ export class PayloadPanel {
         } else if (/null/.test(match)) {
           cls = 'json-null';
         }
-        
-        // For keys, add the colon back with punctuation styling
+
+        // FOR KEYS, ADD THE COLON BACK WITH PUNCTUATION STYLING
         if (cls === 'json-key') {
           return `<span class="${cls}">${this._escapeHtml(match)}</span><span class="json-punctuation">:</span>`;
         }
-        
+
         return `<span class="${cls}">${this._escapeHtml(match)}</span>`;
       })
-      // Add coloring to brackets and commas
+      // ADDING COLORING TO BRACKETS AND COMMAS
       .replace(/[{}[\],]/g, function (match) {
         return `<span class="json-punctuation">${match}</span>`;
       });

@@ -1,13 +1,12 @@
 export type FakePayload = {
-    [key: string]: string; // This means that the keys of the object will be strings and their values will also be strings.
+  [key: string]: string | number | boolean | object | any[];
 };
 
-
-// Define a type for extracted fields with their types
+// EXTRACTED FILEDS WITH THEIR TYPES
 export interface SchemaField {
   name: string;
-  type: 'String' | 'Number' | 'Boolean' | 'Date' | 'Array' | 'Object' | 'Unknown' | 'ObjectId';
+  type: 'String' | 'Number' | 'Boolean' | 'Date' | 'Array' | 'Object' | 'Unknown' | 'ObjectId' | 'Buffer' | 'Map';
   enum?: string[];
   nestedFields?: SchemaField[];
-  ref?: string;  // Add this to store the referenced model
+  ref?: string;
 }

@@ -266,9 +266,59 @@ footer a {
     
     .content {
         margin-left: 0;
+        padding: 10px;
     }
     
-    .feature-grid, .types-grid, .file-descriptions {
+    .feature-grid, 
+    .types-grid, 
+    .file-descriptions {
         grid-template-columns: 1fr;
+    }
+    
+    .feature-card,
+    .type-category,
+    .file-item,
+    .arch-layer {
+        padding: 15px;
+        margin-bottom: 15px;
+        width: 100%;
+        min-width: 100%;
+    }
+    
+    section {
+        padding: 15px;
+        margin-bottom: 30px;
+    }
+    
+    pre {
+        padding: 10px;
+        font-size: 14px;
+    }
+    
+    header h1 {
+        font-size: 2rem;
+    }
+    
+    .subtitle {
+        font-size: 1rem;
+    }
+    
+    .video-container {
+        margin: 20px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        width: 95%;
+        padding: 0 10px;
+    }
+    
+    h2 {
+        font-size: 1.5rem;
+    }
+    
+    h3 {
+        font-size: 1.2rem;
     }
 }

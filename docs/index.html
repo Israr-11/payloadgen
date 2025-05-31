@@ -466,19 +466,22 @@ app.post('/products', (req: Request, res: Response): void => {
         </main>
     </div>
 
-    <footer>
-        <div class="container">
-            <p>Enjoy faster API testing with PayloadGen ❴ ⚡ ❵</p>
-            <p>&copy; {new Date().getFullYear()} PayloadGen</p>
-        </div>
-    </footer>
+<footer>
+    <div class="container">
+        <p>Enjoy faster API testing with PayloadGen ❴ ⚡ ❵</p>
+        <p>&copy; <span id="current-year"></span> PayloadGen</p>
+    </div>
+</footer>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', (event) => {
-            document.querySelectorAll('pre code').forEach((block) => {
-                hljs.highlightBlock(block);
-            });
+<script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+        document.querySelectorAll('pre code').forEach((block) => {
+            hljs.highlightBlock(block);
         });
-    </script>
+        
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+    });
+</script>
+
 </body>
 </html>

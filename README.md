@@ -28,20 +28,20 @@
    A new panel shows your generated payload with syntax highlighting.
 
 4. **Copy or Save**  
-   Use the buttons to copy to clipboard or save as a JSON file.
+   Use the buttons to copy to the clipboard or save as a JSON file.
 
 ## Features
 
-- **One-Click Generation**: Select code, run command, get instant realistic payloads
+- **One-Click Generation**: Select code, run command, get instant, realistic payloads
 - **Smart Field Detection**: Automatically identifies fields from req.body, Mongoose schemas, and more
 - **Realistic Data**: Generates contextually appropriate data (emails for email fields, addresses for address fields, etc.)
 - **Complex Structure Support**: Handles nested objects, arrays, and references
 - **MongoDB Integration**: Special support for ObjectId references and Mongoose schema patterns
-- **Copy & Save**: Easily copy payloads to clipboard or save as JSON files
+- **Copy & Save**: Easily copy payloads to the clipboard or save as JSON files
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 For comprehensive documentation including architecture details, contribution guidelines, and advanced usage examples, visit our [Documentation Site](https://israr-11.github.io/payloadgen/).
 
@@ -128,7 +128,7 @@ See more examples of PayloadGen in action
 
 PayloadGen respects your privacy
 
-- **100% Local Processing**: All code analysis and payload generation happens locally
+- **100% Local Processing**: All code analysis and payload generation happen locally
 - **No Data Collection**: We don't collect, store, or transmit your code or generated payloads
 - **No Telemetry**: We don't track usage or collect analytics
 

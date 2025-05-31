@@ -49,7 +49,7 @@
 ## Examples
 
 ### From Mongoose Schema
-
+#### JavaScript-based Mongoose Schema
 ```javascript
 const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -65,7 +65,7 @@ const UserSchema = new mongoose.Schema({
 });
 ```
 
-#### Generates:
+#### Generates
 
 ```json
 {
@@ -81,6 +81,8 @@ const UserSchema = new mongoose.Schema({
   "createdAt": "2025-05-30T19:45:24.606Z"
 }
 ```
+#### TypeScript-based Mongoose Schema
+
 ```typescript
 import mongoose, { Document, Schema } from 'mongoose';
 
@@ -119,7 +121,8 @@ export const UserModel = mongoose.model<IUser>('User', UserSchema);
 }
 ```
 
-### From Express Route Handler
+### From Express route Handler
+#### JavaScript-based route handler
 
 ```javascript
 app.post("/blog", (req, res) => {
@@ -144,6 +147,7 @@ app.post("/blog", (req, res) => {
   "published": "tametsi"
 }
 ```
+#### TypeScript-based route handler
 
 ```typescript
 import express, { Request, Response } from 'express';
@@ -295,7 +299,7 @@ Contributions are welcome! Here's how to get started:
 1. **Fork** the repository  
 2. Create a feature branch
 
-   ```bash
+```bash
    git checkout -b feature/amazing-feature
 ```
 3. Make changes

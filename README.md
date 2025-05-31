@@ -1,17 +1,8 @@
----
-title: PayloadGen ❴ ⚡ ❵
-description: Generate realistic API payloads instantly from your code.
-slug: /
----
-
-import Tabs from '@theme/Tabs';
-import TabItem from '@theme/TabItem';
-
 # PayloadGen ❴ ⚡ ❵
 
 > **Generate realistic API payloads instantly from your code**
 
-**PayloadGen** is a powerful Visual Studio Code extension that scans your JavaScript/TypeScript code and generates realistic dummy data for API testing. Especially useful for **Express (js, ts) ** and **Mongoose/MongoDB** workflows.
+**PayloadGen** is a powerful Visual Studio Code extension that scans your JavaScript/TypeScript code and generates realistic dummy data for API testing. It is especially useful for **Express (js, ts) ** and **Mongoose/MongoDB** workflows.
 
 ![PayloadGen Demo](https://res.cloudinary.com/cloudupload11111/video/upload/v1748684232/opensource/PayloadGen%20Demo.mp4)
 
@@ -22,7 +13,7 @@ import TabItem from '@theme/TabItem';
 - **One-Click Generation** – Select the code, open command palette, search PayloadGen, click, and boom: realistic payloads.
 - **Smart Field Detection** – Understands `req.body`, Mongoose schemas, and more.
 - **Realistic Data** – Generates context-aware dummy data for simple to complex keys
-- **Complex Structures** – Supports nested objects, arrays, enums, ObjectId references and way more.
+- **Complex Structures** – Supports nested objects, arrays, enums, ObjectId references, and more.
 - **MongoDB Support** – Deep integration with Mongoose schema conventions.
 - **Copy & Save** – Instantly copy or export the payloads as JSON files.
 
@@ -55,7 +46,7 @@ import TabItem from '@theme/TabItem';
 
 ---
 
-## ✨ Examples
+## Examples
 
 ### From Express Route Handler
 
@@ -214,7 +205,7 @@ PayloadGen recognizes and generates appropriate data for:
   Emails, names, addresses, phone numbers, and many more
 
 ### Project Structure
-
+```
 payloadgen/
 ├── .vscode/
 ├── dist/
@@ -238,7 +229,7 @@ payloadgen/
 ├── package.json
 ├── tsconfig.json
 └── webpack.config.js
-
+```
 ### Key Files Explained
 
 - **`extension.ts`**  

@@ -4,7 +4,7 @@
 
 **PayloadGen** is a powerful Visual Studio Code extension that scans your JavaScript/TypeScript code and generates realistic dummy data for API testing. It is especially useful for **Express (js, ts) ** and **Mongoose/MongoDB** workflows.
 
-![PayloadGen Demo](https://res.cloudinary.com/cloudupload11111/video/upload/v1748684232/opensource/PayloadGen%20Demo.mp4)
+**PayloadGen Demo:** [View Demo](https://res.cloudinary.com/cloudupload11111/video/upload/v1748684232/opensource/PayloadGen%20Demo.mp4)
 
 ---
 
@@ -47,76 +47,6 @@
 ---
 
 ## Examples
-
-### From Express Route Handler
-
-```javascript
-app.post("/blog", (req, res) => {
-  const { title, content, author, tags, published } = req.body;
-  res.status(201).json({ message: "Blog post created" });
-});
-
-```
-
-#### Generates:
-
-```json
-{
-  "title": "Adversus pel synagoga uredo audax suscipio subiungo pauci usitas.",
-  "content": "uxor",
-  "author": "blandior",
-  "tags": [
-    "record",
-    "besides",
-    "including"
-  ],
-  "published": "tametsi"
-}
-```
-
-```typescript
-import express, { Request, Response } from 'express';
-
-const app = express();
-app.use(express.json());
-
-interface Product {
-  name: string;
-  description: string;
-  price: number;
-  inStock: boolean;
-  tags: string[];
-}
-
-app.post('/products', (req: Request, res: Response): void => {
-  const body = req.body as Product;
-
-  if (!body.name || typeof body.price !== 'number') {
-    res.status(400).json({ error: 'Invalid product data' });
-    return;
-  }
-
-  res.status(201).json({ message: 'Product created', product: body });
-});
-
-
-```
-
-#### Generates:
-
-```json
-{
-  "name": "Harley",
-  "description": "Nobis temporibus capitulus tamisium talus degusto abbas coruscus adipisci. Tergiversatio defungo admitto cunabula abbas. Textilis degenero sophismata crustulum crudelis cubicularis.",
-  "price": 859,
-  "inStock": false,
-  "tags": [
-    "where",
-    "experience",
-    "distinction"
-  ]
-}
-```
 
 ### From Mongoose Schema
 
@@ -188,6 +118,78 @@ export const UserModel = mongoose.model<IUser>('User', UserSchema);
   "createdAt": "2025-05-31T03:55:33.909Z"
 }
 ```
+
+### From Express Route Handler
+
+```javascript
+app.post("/blog", (req, res) => {
+  const { title, content, author, tags, published } = req.body;
+  res.status(201).json({ message: "Blog post created" });
+});
+
+```
+
+#### Generates:
+
+```json
+{
+  "title": "Adversus pel synagoga uredo audax suscipio subiungo pauci usitas.",
+  "content": "uxor",
+  "author": "blandior",
+  "tags": [
+    "record",
+    "besides",
+    "including"
+  ],
+  "published": "tametsi"
+}
+```
+
+```typescript
+import express, { Request, Response } from 'express';
+
+const app = express();
+app.use(express.json());
+
+interface Product {
+  name: string;
+  description: string;
+  price: number;
+  inStock: boolean;
+  tags: string[];
+}
+
+app.post('/products', (req: Request, res: Response): void => {
+  const body = req.body as Product;
+
+  if (!body.name || typeof body.price !== 'number') {
+    res.status(400).json({ error: 'Invalid product data' });
+    return;
+  }
+
+  res.status(201).json({ message: 'Product created', product: body });
+});
+
+
+```
+
+#### Generates:
+
+```json
+{
+  "name": "Harley",
+  "description": "Nobis temporibus capitulus tamisium talus degusto abbas coruscus adipisci. Tergiversatio defungo admitto cunabula abbas. Textilis degenero sophismata crustulum crudelis cubicularis.",
+  "price": 859,
+  "inStock": false,
+  "tags": [
+    "where",
+    "experience",
+    "distinction"
+  ]
+}
+```
+
+
 ### Supported Field Types
 
 PayloadGen recognizes and generates appropriate data for:
@@ -267,7 +269,7 @@ payloadgen/
 
 **Data Flow:**
 
-1. User selects code and triggers the command  
+1. The user selects the code and triggers the command  
 2. `Extractor` analyzes the code to identify fields and their types  
 3. `Faker` generates appropriate data for each field  
 4. `PayloadPanel` displays the result in a formatted, interactive view
@@ -297,6 +299,7 @@ Contributions are welcome! Here's how to get started:
    git checkout -b feature/amazing-feature
 ```
 3. Make changes
+
 Install the node modules, then carefully make your changes to the codebase to ensure everything works smoothly:
 
 ```bash
@@ -306,7 +309,7 @@ Build the extension using
 ```bash
 npm run compile
 ```
-Launch the extension in debug mode by Pressing F5 in VS Code to open a new window with the extension loaded
+Launch the extension in debug mode by pressing F5 in VS Code to open a new window with the extension loaded
 
 4. Run tests
 ```bash

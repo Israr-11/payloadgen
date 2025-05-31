@@ -2,7 +2,7 @@
 
 > **Generate realistic API payloads instantly from your code**
 
-**PayloadGen** is a powerful Visual Studio Code extension that scans your JavaScript/TypeScript code and generates realistic dummy data for API testing. It is especially useful for **Express (js, ts) ** and **Mongoose/MongoDB** workflows.
+**PayloadGen** is a powerful Visual Studio Code extension that scans the provided JavaScript/TypeScript code and generates realistic dummy JSON data for API testing. It is especially useful for **Express (js, ts) ** and **Mongoose/MongoDB** workflows.
 
 **PayloadGen Demo:** [View Demo](https://res.cloudinary.com/cloudupload11111/video/upload/v1748684232/opensource/PayloadGen%20Demo.mp4)
 

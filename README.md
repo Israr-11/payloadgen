@@ -19,7 +19,7 @@
 
 ---
 
-## 📥 Installation
+## Installation
 
 ### VS Code Marketplace
 
@@ -30,7 +30,7 @@
 
 ---
 
-## ⚙️ How to Use
+## How to Use
 
 1. **Select the Code**  
    Highlight a route handler, Mongoose schema, or object with field definitions.

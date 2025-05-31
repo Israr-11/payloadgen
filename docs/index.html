@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayloadGen Documentation</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/typescript.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>PayloadGen ❴ ⚡ ❵</h1>
+            <p class="subtitle">Comprehensive documentation for the PayloadGen VS Code extension</p>
+        </div>
+    </header>
+
+    <div class="container">
+        <nav class="sidebar">
+            <ul>
+                <li><a href="#introduction">Introduction</a></li>
+                <li><a href="#demo">Demo Video</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#installation">Installation</a></li>
+                <li><a href="#usage">How to Use</a></li>
+                <li><a href="#examples">Examples</a>
+                    <ul>
+                        <li><a href="#mongoose-js">Mongoose (JS)</a></li>
+                        <li><a href="#mongoose-ts">Mongoose (TS)</a></li>
+                        <li><a href="#express-js">Express (JS)</a></li>
+                        <li><a href="#express-ts">Express (TS)</a></li>
+                    </ul>
+                </li>
+                <li><a href="#supported-types">Supported Field Types</a></li>
+                <li><a href="#architecture">Architecture</a></li>
+                <li><a href="#project-structure">Project Structure</a></li>
+                <li><a href="#key-files">Key Files</a></li>
+                <li><a href="#contributing">Contributing</a></li>
+                <li><a href="#support">Feedback & Support</a></li>
+                <li><a href="#license">License</a></li>
+            </ul>
+        </nav>
+
+        <main class="content">
+            <section id="introduction">
+                <h2>Introduction</h2>
+                <p><strong>PayloadGen</strong> is a powerful Visual Studio Code extension that scans the provided JavaScript/TypeScript code and generates realistic dummy JSON data for API testing. It is especially useful for <strong>Express (JS/TS)</strong> and <strong>Mongoose/MongoDB</strong> workflows.</p>
+                
+                <p>With PayloadGen, you can:</p>
+                <ul>
+                    <li>Generate realistic test data with a single click</li>
+                    <li>Save time by automating the creation of API request payloads</li>
+                    <li>Test your APIs with contextually appropriate data</li>
+                    <li>Support complex data structures including nested objects and arrays</li>
+                </ul>
+            </section>
+
+            <section id="demo">
+                <h2>Demo Video</h2>
+                <div class="video-container">
+                    <video controls width="100%">
+                        <source src="https://res.cloudinary.com/cloudupload11111/video/upload/v1748684232/opensource/PayloadGen%20Demo.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+                <p class="caption">A comprehensive demonstration of PayloadGen in action</p>
+            </section>
+
+            <section id="features">
+                <h2>Features</h2>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h3>One-Click Generation</h3>
+                        <p>Select the code, open command palette, search PayloadGen, click, and boom: realistic payloads.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Smart Field Detection</h3>
+                        <p>Understands <code>req.body</code>, Mongoose schemas, and more.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Realistic Data</h3>
+                        <p>Generates context-aware dummy data for simple to complex keys.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Complex Structures</h3>
+                        <p>Supports nested objects, arrays, enums, ObjectId references, and more.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>MongoDB Support</h3>
+                        <p>Deep integration with Mongoose schema conventions.</p>
+                    </div>
+                    <div class="feature-card">
+                        <h3>Copy & Save</h3>
+                        <p>Instantly copy or export the payloads as JSON files.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="installation">
+                <h2>Installation</h2>
+                <h3>VS Code Marketplace</h3>
+                <ol>
+                    <li>Open <strong>VS Code</strong></li>
+                    <li>Press <code>Ctrl+Shift+X</code> or <code>Cmd+Shift+X</code></li>
+                    <li>Search for <code>PayloadGen</code></li>
+                    <li>Click <strong>Install</strong></li>
+                </ol>
+                
+                <h3>Manual Installation</h3>
+                <p>You can also install the extension manually by downloading the .vsix file from the <a href="https://github.com/Israr-11/payloadgen/releases">GitHub releases page</a> and installing it with:</p>
+                <pre><code class="language-bash">code --install-extension payloadgen-1.0.0.vsix</code></pre>
+            </section>
+
+            <section id="usage">
+                <h2>How to Use</h2>
+                <ol>
+                    <li>
+                        <strong>Select the Code</strong>
+                        <p>Highlight a route handler, Mongoose schema, or object with field definitions.</p>
+                    </li>
+                    <li>
+                        <strong>Run the Command</strong>
+                        <p>Use one of these methods:</p>
+                        <ul>
+                            <li>Press <code>Ctrl+Shift+P</code> / <code>Cmd+Shift+P</code> → Search <code>PayloadGen</code></li>
+                            <li>Right-click on the selected code and choose "Generate API Payload"</li>
+                        </ul>
+                    </li>
+                    <li>
+                        <strong>View the Payload</strong>
+                        <p>A new editor tab shows the generated payload with syntax highlighting.</p>
+                    </li>
+                    <li>
+                        <strong>Copy or Save</strong>
+                        <p>Use the UI buttons to copy to clipboard or download as a <code>.json</code> file.</p>
+                    </li>
+                </ol>
+            </section>
+
+            <section id="examples">
+                <h2>Examples</h2>
+                
+                <div id="mongoose-js">
+                    <h3>JavaScript-based Mongoose Schema</h3>
+                    <pre><code class="language-javascript">const UserSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, unique: true },
+  age: Number,
+  role: { type: String, enum: ['admin', 'user', 'guest'] },
+  address: {
+    street: String,
+    city: String,
+    zipcode: String
+  },
+  createdAt: { type: Date, default: Date.now }
+});</code></pre>
+                    <h4>Generates:</h4>
+                    <pre><code class="language-json">{
+  "name": "Roman",
+  "email": "Ulices.Trantow@hotmail.com",
+  "age": 36,
+  "role": "guest",
+  "address": {
+    "street": "43280 Schulist Vista",
+    "city": "Lelahberg",
+    "zipcode": "87184"
+  },
+  "createdAt": "2025-05-30T19:45:24.606Z"
+}</code></pre>
+                </div>
+                
+                <div id="mongoose-ts">
+                    <h3>TypeScript-based Mongoose Schema</h3>
+                    <pre><code class="language-typescript">import mongoose, { Document, Schema } from 'mongoose';
+
+export interface IUser extends Document {
+    name: string;
+    email: string;
+    age?: number;
+    role?: 'admin' | 'user' | 'guest';
+    address?: string;
+    createdAt: Date;
+}
+
+const UserSchema = new Schema&lt;IUser&gt;({
+    name: { type: String, required: true },
+    email: { type: String, unique: true },
+    age: { type: Number },
+    role: { type: String, enum: ['admin', 'user', 'guest'] },
+    address: { type: String },
+    createdAt: { type: Date, default: Date.now },
+});
+
+export const UserModel = mongoose.model&lt;IUser&gt;('User', UserSchema);</code></pre>
+                    <h4>Generates:</h4>
+                    <pre><code class="language-json">{
+  "name": "Shaina",
+  "email": "Alvena.Lowe-Lakin26@gmail.com",
+  "age": 62,
+  "role": "user",
+  "address": "582 Nick Motorway",
+  "createdAt": "2025-05-31T03:55:33.909Z"
+}</code></pre>
+                </div>
+                
+                <div id="express-js">
+                    <h3>JavaScript-based Express Route Handler</h3>
+                    <pre><code class="language-javascript">app.post("/blog", (req, res) => {
+  const { title, content, author, tags, published } = req.body;
+  res.status(201).json({ message: "Blog post created" });
+});</code></pre>
+                    <h4>Generates:</h4>
+                    <pre><code class="language-json">{
+  "title": "Adversus pel synagoga uredo audax suscipio subiungo pauci usitas.",
+  "content": "uxor",
+  "author": "blandior",
+  "tags": [
+    "record",
+    "besides",
+    "including"
+  ],
+  "published": "tametsi"
+}</code></pre>
+                </div>
+                
+                <div id="express-ts">
+                    <h3>TypeScript-based Express Route Handler</h3>
+                    <pre><code class="language-typescript">import express, { Request, Response } from 'express';
+
+const app = express();
+app.use(express.json());
+
+interface Product {
+  name: string;
+  description: string;
+  price: number;
+  inStock: boolean;
+  tags: string[];
+}
+
+app.post('/products', (req: Request, res: Response): void => {
+  const body = req.body as Product;
+  
+  if (!body.name || typeof body.price !== 'number') {
+    res.status(400).json({ error: 'Invalid product data' });
+    return;
+  }
+  
+  res.status(201).json({ message: 'Product created', product: body });
+});</code></pre>
+                    <h4>Generates:</h4>
+                    <pre><code class="language-json">{
+  "name": "Harley",
+  "description": "Nobis temporibus capitulus tamisium talus degusto abbas coruscus adipisci. Tergiversatio defungo admitto cunabula abbas. Textilis degenero sophismata crustulum crudelis cubicularis.",
+  "price": 859,
+  "inStock": false,
+  "tags": [
+    "where",
+    "experience",
+    "distinction"
+  ]
+}</code></pre>
+                </div>
+            </section>
+
+            <section id="supported-types">
+                <h2>Supported Field Types</h2>
+                <p>PayloadGen recognizes and generates appropriate data for:</p>
+                
+                <div class="types-grid">
+                    <div class="type-category">
+                        <h3>Basic Types</h3>
+                        <ul>
+                            <li>Strings</li>
+                            <li>Numbers</li>
+                            <li>Booleans</li>
+                            <li>Dates</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="type-category">
+                        <h3>Complex Types</h3>
+                        <ul>
+                            <li>Objects</li>
+                            <li>Arrays</li>
+                            <li>Maps</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="type-category">
+                        <h3>MongoDB Types</h3>
+                        <ul>
+                            <li>ObjectId references</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="type-category">
+                        <h3>Common Fields</h3>
+                        <ul>
+                            <li>Emails</li>
+                            <li>Names</li>
+                            <li>Addresses</li>
+                            <li>Phone numbers</li>
+                            <li>And many more</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section id="architecture">
+                <h2>Architecture</h2>
+                <p><strong>PayloadGen</strong> follows a modular architecture:</p>
+                
+                <div class="architecture-diagram">
+                    <div class="arch-layer">
+                        <h3>Command Layer</h3>
+                        <p>Handles user interactions and VS Code integration</p>
+                    </div>
+                    <div class="arch-layer">
+                        <h3>Core Layer</h3>
+                        <p>Contains the business logic for code analysis and data generation</p>
+                    </div>
+                    <div class="arch-layer">
+                        <h3>UI Layer</h3>
+                        <p>Manages the presentation of generated payloads</p>
+                    </div>
+                </div>
+                
+                <h3>Data Flow:</h3>
+                <ol class="data-flow">
+                    <li>The user selects the code and triggers the command</li>
+                    <li><code>Extractor</code> analyzes the code to identify fields and their types</li>
+                    <li><code>Faker</code> generates appropriate data for each field</li>
+                    <li><code>PayloadPanel</code> displays the result in a formatted, interactive view</li>
+                </ol>
+                
+                <p>This modular approach makes the codebase maintainable and extensible, allowing for easy addition of new features or support for additional code patterns.</p>
+            </section>
+            <section id="project-structure">
+                <h2>Project Structure</h2>
+                <pre><code class="language-plaintext">payloadgen/
+├── .vscode/
+├── dist/
+├── node_modules/
+├── src/
+│ ├── commands/
+│ │ └── generateFakePayload.ts
+│ ├── core/
+│ │ ├── extractor.ts
+│ │ └── faker.ts
+│ ├── test/
+│ │ ├── extension.test.ts
+│ │ └── generateFakePayload.test.ts
+│ ├── types/
+│ │ └── index.ts
+│ ├── ui/
+│ │ └── PayloadPanel.ts
+│ └── extension.ts
+├── .eslintrc.json
+├── .gitignore
+├── package.json
+├── tsconfig.json
+└── webpack.config.js</code></pre>
+            </section>
+
+            <section id="key-files">
+                <h2>Key Files Explained</h2>
+                <div class="file-descriptions">
+                    <div class="file-item">
+                        <h3><code>extension.ts</code></h3>
+                        <p>Entry point that registers commands and activates the extension.</p>
+                    </div>
+                    <div class="file-item">
+                        <h3><code>commands/generateFakePayload.ts</code></h3>
+                        <p>Implements the main command logic.</p>
+                    </div>
+                    <div class="file-item">
+                        <h3><code>core/extractor.ts</code></h3>
+                        <p>Analyzes code to extract field information using AST parsing.</p>
+                    </div>
+                    <div class="file-item">
+                        <h3><code>core/faker.ts</code></h3>
+                        <p>Generates appropriate fake data based on field names and types.</p>
+                    </div>
+                    <div class="file-item">
+                        <h3><code>ui/PayloadPanel.ts</code></h3>
+                        <p>Creates and manages the webview panel that displays the payload.</p>
+                    </div>
+                    <div class="file-item">
+                        <h3><code>types/index.ts</code></h3>
+                        <p>Contains TypeScript interfaces and types used throughout the project.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="contributing">
+                <h2>Contributing</h2>
+                <p>Contributions are welcome! Here's how to get started:</p>
+                
+                <ol class="contribution-steps">
+                    <li>
+                        <strong>Fork</strong> the repository
+                    </li>
+                    <li>
+                        Create a feature branch
+                        <pre><code class="language-bash">git checkout -b feature/amazing-feature</code></pre>
+                    </li>
+                    <li>
+                        <strong>Make changes</strong>
+                        <p>Install the node modules, then carefully make your changes to the codebase to ensure everything works smoothly:</p>
+                        <pre><code class="language-bash">npm install</code></pre>
+                        <p>Build the extension using</p>
+                        <pre><code class="language-bash">npm run compile</code></pre>
+                        <p>Launch the extension in debug mode by pressing F5 in VS Code to open a new window with the extension loaded</p>
+                    </li>
+                    <li>
+                        <strong>Run tests</strong>
+                        <pre><code class="language-bash">npm test</code></pre>
+                    </li>
+                    <li>
+                        <strong>Commit changes</strong>
+                        <pre><code class="language-bash">git commit -m 'Add some amazing feature'</code></pre>
+                    </li>
+                    <li>
+                        <strong>Push to your branch</strong>
+                        <pre><code class="language-bash">git push origin feature/amazing-feature</code></pre>
+                    </li>
+                    <li>
+                        <strong>Open a Pull Request</strong>
+                    </li>
+                </ol>
+                
+                <h3>Contribution Guidelines</h3>
+                <ul>
+                    <li>Follow existing code style and naming conventions</li>
+                    <li>Add tests for any new features</li>
+                    <li>Update documentation as necessary</li>
+                    <li>Keep pull requests focused on a single feature or bug fix</li>
+                </ul>
+            </section>
+
+            <section id="support">
+                <h2>Feedback and Support</h2>
+                <ul>
+                    <li>
+                        Report bugs or request features on the 
+                        <a href="https://github.com/Israr-11/payloadgen/issues">GitHub Issues</a> page
+                    </li>
+                    <li>
+                        Have questions or feedback? Join the conversation on 
+                        <a href="https://github.com/Israr-11/payloadgen/discussions">GitHub Discussions</a>
+                    </li>
+                </ul>
+            </section>
+
+            <section id="license">
+                <h2>License</h2>
+                <p>This project is licensed under the MIT License - see the 
+                <a href="https://github.com/Israr-11/payloadgen/blob/main/LICENSE">LICENSE</a> file for details.</p>
+                
+                <h3>Author</h3>
+                <p>Created with ❤️ by <a href="https://github.com/Israr-11">Israr</a></p>
+            </section>
+        </main>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>Enjoy faster API testing with PayloadGen ❴ ⚡ ❵</p>
+            <p>&copy; {new Date().getFullYear()} PayloadGen</p>
+        </div>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            document.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightBlock(block);
+            });
+        });
+    </script>
+</body>
+</html>

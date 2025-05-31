@@ -2,85 +2,49 @@
 
 > **Generate realistic API payloads instantly from your code**
 
-**PayloadGen** is a powerful Visual Studio Code extension that scans your JavaScript/TypeScript code and generates realistic dummy data for API testing. It is especially useful for **Express (js, ts) ** and **Mongoose/MongoDB** workflows.
+**PayloadGen** is a powerful Visual Studio Code extension that scans JavaScript/TypeScript code and generates realistic dummy data for API testing. Perfect for **Express.js** and **Mongoose/MongoDB** workflows.
 
-**PayloadGen Demo:** [View Demo](https://res.cloudinary.com/cloudupload11111/video/upload/v1748684232/opensource/PayloadGen%20Demo.mp4)
-
----
-
-## Features
-
-- **One-Click Generation** – Select the code, open command palette, search PayloadGen, click, and boom: realistic payloads.
-- **Smart Field Detection** – Understands `req.body`, Mongoose schemas, and more.
-- **Realistic Data** – Generates context-aware dummy data for simple to complex keys
-- **Complex Structures** – Supports nested objects, arrays, enums, ObjectId references, and more.
-- **MongoDB Support** – Deep integration with Mongoose schema conventions.
-- **Copy & Save** – Instantly copy or export the payloads as JSON files.
+**PayloadGen Demo:** [View Demo](https://res.cloudinary.com/cloudupload11111/image/upload/v1748714275/opensource/payloadgen_demos/Part_1_Gif_JS_Mongoose_wov2ja.gif)
 
 ---
 
-## 📥 Installation
-
-### VS Code Marketplace
+## Installation
 
 1. Open **VS Code**
-2. Press `Ctrl+Shift+X` or `Cmd+Shift+X`
+2. Press `Ctrl+Shift+X` or `Cmd+Shift+X` on Mac
 3. Search for `PayloadGen`
 4. Click **Install**
 
----
-
-## ⚙️ How to Use
+## How to Use
 
 1. **Select the Code**  
    Highlight a route handler, Mongoose schema, or object with field definitions.
 
 2. **Run the Command**    
-   - `Ctrl+Shift+P` / `Cmd+Shift+P` → Search `PayloadGen`
+   - Right-click and select "Generate API Payload" from the context menu, or
+   - Press `Ctrl+Shift+P` / `Cmd+Shift+P` and search for "Generate API Payload"
 
 3. **View the Payload**  
-   A new editor tab shows the generated payload.
+   A new panel shows your generated payload with syntax highlighting.
 
 4. **Copy or Save**  
-   Use the UI buttons to copy or download it as a `.json` file.
+   Use the buttons to copy to clipboard or save as a JSON file.
+
+## Features
+
+- **One-Click Generation**: Select code, run command, get instant realistic payloads
+- **Smart Field Detection**: Automatically identifies fields from req.body, Mongoose schemas, and more
+- **Realistic Data**: Generates contextually appropriate data (emails for email fields, addresses for address fields, etc.)
+- **Complex Structure Support**: Handles nested objects, arrays, and references
+- **MongoDB Integration**: Special support for ObjectId references and Mongoose schema patterns
+- **Copy & Save**: Easily copy payloads to clipboard or save as JSON files
 
 ---
 
 ## Examples
 
 ### From Mongoose Schema
-#### JavaScript-based Mongoose Schema
-```javascript
-const UserSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, unique: true },
-  age: Number,
-  role: { type: String, enum: ['admin', 'user', 'guest'] },
-  address: {
-    street: String,
-    city: String,
-    zipcode: String
-  },
-  createdAt: { type: Date, default: Date.now }
-});
-```
 
-#### Generates
-
-```json
-{
-  "name": "Roman",
-  "email": "Ulices.Trantow@hotmail.com",
-  "age": 36,
-  "role": "guest",
-  "address": {
-    "street": "43280 Schulist Vista",
-    "city": "Lelahberg",
-    "zipcode": "87184"
-  },
-  "createdAt": "2025-05-30T19:45:24.606Z"
-}
-```
 #### TypeScript-based Mongoose Schema
 
 ```typescript
@@ -147,143 +111,29 @@ app.post("/blog", (req, res) => {
   "published": "tametsi"
 }
 ```
-#### TypeScript-based route handler
+## More Examples
 
-```typescript
-import express, { Request, Response } from 'express';
+See more examples of PayloadGen in action
 
-const app = express();
-app.use(express.json());
+- [Mongoose Schema (JavaScript)](https://res.cloudinary.com/cloudupload11111/image/upload/v1748714275/opensource/payloadgen_demos/Part_1_Gif_JS_Mongoose_wov2ja.gif)
+- [Mongoose Schema (TypeScript)](https://res.cloudinary.com/cloudupload11111/image/upload/v1748714269/opensource/payloadgen_demos/Part_2_Gif_TS_Mongoose_abyylz.gif)
+- [Express Route (JavaScript)](https://res.cloudinary.com/cloudupload11111/image/upload/v1748714268/opensource/payloadgen_demos/Part_4_Gif_TS_Route_Handler_dxamvg.gif)
+- [Express Route (TypeScript)](https://res.cloudinary.com/cloudupload11111/image/upload/v1748714267/opensource/payloadgen_demos/Part_3_Gif_JS_Route_Handler_v2gxmw.gif)
 
-interface Product {
-  name: string;
-  description: string;
-  price: number;
-  inStock: boolean;
-  tags: string[];
-}
+## Privacy and Data Usage
 
-app.post('/products', (req: Request, res: Response): void => {
-  const body = req.body as Product;
+PayloadGen respects your privacy
 
-  if (!body.name || typeof body.price !== 'number') {
-    res.status(400).json({ error: 'Invalid product data' });
-    return;
-  }
+- **100% Local Processing**: All code analysis and payload generation happens locally
+- **No Data Collection**: We don't collect, store, or transmit your code or generated payloads
+- **No Telemetry**: We don't track usage or collect analytics
 
-  res.status(201).json({ message: 'Product created', product: body });
-});
+For more details, see our [Privacy Policy](https://github.com/Israr-11/payloadgen/blob/main/PRIVACY.md).
 
+## License
 
-```
+This project is licensed under the MIT License with commercial restrictions - see the [LICENSE](https://github.com/Israr-11/payloadgen/blob/main/LICENSE) file for details.
 
-#### Generates:
-
-```json
-{
-  "name": "Harley",
-  "description": "Nobis temporibus capitulus tamisium talus degusto abbas coruscus adipisci. Tergiversatio defungo admitto cunabula abbas. Textilis degenero sophismata crustulum crudelis cubicularis.",
-  "price": 859,
-  "inStock": false,
-  "tags": [
-    "where",
-    "experience",
-    "distinction"
-  ]
-}
-```
-
-
-### Supported Field Types
-
-PayloadGen recognizes and generates appropriate data for:
-
-- **Basic Types**  
-  Strings, Numbers, Booleans, Dates
-
-- **Complex Types**  
-  Objects, Arrays, Maps
-
-- **MongoDB Types**  
-  ObjectId references
-
-- **Common Fields**  
-  Emails, names, addresses, phone numbers, and many more
-
-### Project Structure
-```
-payloadgen/
-├── .vscode/
-├── dist/
-├── node_modules/
-├── src/
-│ ├── commands/
-│ │ └── generateFakePayload.ts
-│ ├── core/
-│ │ ├── extractor.ts
-│ │ └── faker.ts
-│ ├── test/
-│ │ ├── extension.test.ts
-│ │ └── generateFakePayload.test.ts
-│ ├── types/
-│ │ └── index.ts
-│ ├── ui/
-│ │ └── PayloadPanel.ts
-│ └── extension.ts
-├── .eslintrc.json
-├── .gitignore
-├── package.json
-├── tsconfig.json
-└── webpack.config.js
-```
-### Key Files Explained
-
-- **`extension.ts`**  
-  Entry point that registers commands and activates the extension.
-
-- **`commands/generateFakePayload.ts`**  
-  Implements the main command logic.
-
-- **`core/extractor.ts`**  
-  Analyzes code to extract field information using AST parsing.
-
-- **`core/faker.ts`**  
-  Generates appropriate fake data based on field names and types.
-
-- **`ui/PayloadPanel.ts`**  
-  Creates and manages the webview panel that displays the payload.
-
-- **`types/index.ts`**  
-  Contains TypeScript interfaces and types used throughout the project.
-
-### Architecture
-
-**PayloadGen** follows a modular architecture:
-
-- **Command Layer**  
-  Handles user interactions and VS Code integration
-
-- **Core Layer**  
-  Contains the business logic for code analysis and data generation
-
-- **UI Layer**  
-  Manages the presentation of generated payloads
-
----
-
-**Data Flow:**
-
-1. The user selects the code and triggers the command  
-2. `Extractor` analyzes the code to identify fields and their types  
-3. `Faker` generates appropriate data for each field  
-4. `PayloadPanel` displays the result in a formatted, interactive view
-
-
-### Configuration
-
-No configuration needed! **PayloadGen** works out of the box.
-
----
 
 ### Feedback and Support
 
@@ -291,53 +141,6 @@ No configuration needed! **PayloadGen** works out of the box.
 -  Have questions or feedback? Join the conversation on [GitHub Discussions](https://github.com/Israr-11/payloadgen/discussions)
 
 ---
-
-### Contributing
-
-Contributions are welcome! Here's how to get started:
-
-1. **Fork** the repository  
-2. Create a feature branch
-
-```bash
-   git checkout -b feature/amazing-feature
-```
-3. Make changes
-
-Install the node modules, then carefully make your changes to the codebase to ensure everything works smoothly:
-
-```bash
-npm install
-```
-Build the extension using
-```bash
-npm run compile
-```
-Launch the extension in debug mode by pressing F5 in VS Code to open a new window with the extension loaded
-
-4. Run tests
-```bash
-npm test
-```
-5. Commit changes
-```bash
-git commit -m 'Add some amazing feature'
-```
-6. Push to your branch
-```bash
-git push origin feature/amazing-feature
-```
-7. Open a Pull Request
-
-### Contribution Guidelines
-
-- Follow existing code style and naming conventions  
-- Add tests for any new features  
-- Update documentation as necessary  
-- Keep pull requests focused on a single feature or bug fix
-
-### License
-This project is licensed under the MIT License - see the LICENSE file for details.
 
 ### Author
 Created with ❤️ by [Israr](https://github.com/Israr-11)

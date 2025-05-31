@@ -1,6 +1,10 @@
-# auto-fake-request README
+# PayloadGen ❴ ⚡ ❵
 
-This is the README for your extension "auto-fake-request". After writing up a brief description, we recommend including the following sections.
+> Generate realistic API payloads instantly from your code
+
+PayloadGen is a VS Code extension that automatically analyzes your JavaScript/TypeScript code and generates realistic fake data for API testing. Perfect for Express (TypeScript and JavaScript) and MongoDB/Mongoose projects.
+
+![PayloadGen Demo](https://github.com/yourusername/api-payload-generator/raw/main/images/demo.gif)
 
 ## Features
 

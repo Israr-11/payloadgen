@@ -1,7 +1,6 @@
 import * as ts from 'ts-morph';
 import { SchemaField } from '../types/index';
 
-
 export function extractKeysFromCode(code: string): SchemaField[] {
   const fields: SchemaField[] = [];
 
@@ -10,12 +9,13 @@ export function extractKeysFromCode(code: string): SchemaField[] {
     const project = new ts.Project({ useInMemoryFileSystem: true });
     const sourceFile = project.createSourceFile('temp.ts', code);
 
-    // FINDING DESTRUCTURING PATTERNS
+    // SCENARIO 1: DESTRUCTURING PATTERNS
     const destructuringDeclarations = sourceFile.getDescendantsOfKind(ts.SyntaxKind.VariableDeclaration)
       .filter(declaration => {
         const initializer = declaration.getInitializer();
         if (!initializer) { return false; }
 
+        // CHECKING IF IT IS A PROPERTY ACCESS EXPRESSION (req.body)
         if (ts.Node.isPropertyAccessExpression(initializer)) {
           const propAccess = initializer.asKind(ts.SyntaxKind.PropertyAccessExpression);
           if (propAccess && propAccess.getName() === 'body') {
@@ -25,7 +25,7 @@ export function extractKeysFromCode(code: string): SchemaField[] {
         return false;
       });
 
-    // EXTRACTING FIELDS NAMES FROM DESTRUCTURING PATTERNS
+    // EXTRACTING FIELD NAMES FROM DESTRUCTURING PATTERNS
     destructuringDeclarations.forEach(declaration => {
       const bindingPattern = declaration.getChildrenOfKind(ts.SyntaxKind.ObjectBindingPattern)[0];
       if (bindingPattern) {
@@ -37,7 +37,7 @@ export function extractKeysFromCode(code: string): SchemaField[] {
       }
     });
 
-    //FINDING PROPERTY ACCESS EXPRESSIONS: req.body.fieldName
+    // SCENARIO 2: DIRECT PROPERTY ACCESS
     const propertyAccesses = sourceFile.getDescendantsOfKind(ts.SyntaxKind.PropertyAccessExpression)
       .filter(propAccess => {
         const expression = propAccess.getExpression();
@@ -55,14 +55,98 @@ export function extractKeysFromCode(code: string): SchemaField[] {
       if (name) { fields.push({ name, type: 'Unknown' }); }
     });
 
-    // IF NO FIELDS FOUND, TRYING TO EXTRACT FROM MONGOOSE SCHEMA
+    // SCENARIO 3: TYPE ASSERTIONS
+    const asExpressions = sourceFile.getDescendantsOfKind(ts.SyntaxKind.AsExpression);
+
+    for (const asExpr of asExpressions) {
+      const expression = asExpr.getExpression();
+
+      if (ts.Node.isPropertyAccessExpression(expression)) {
+        const propAccess = expression.asKind(ts.SyntaxKind.PropertyAccessExpression);
+        if (propAccess && propAccess.getName() === 'body') {
+          const typeNode = asExpr.getTypeNode();
+          if (typeNode) {
+            const typeName = typeNode.getText();
+
+            const interfaces = sourceFile.getInterfaces();
+            for (const interfaceDecl of interfaces) {
+              if (interfaceDecl.getName() === typeName) {
+                const properties = interfaceDecl.getProperties();
+                for (const prop of properties) {
+                  const propName = prop.getName();
+                  const typeNode = prop.getTypeNode();
+                  let fieldType: SchemaField['type'] = 'Unknown';
+
+                  if (typeNode) {
+                    const typeText = typeNode.getText();
+                    if (typeText.includes('string')) { fieldType = 'String'; }
+                    else if (typeText.includes('number')) { fieldType = 'Number'; }
+                    else if (typeText.includes('boolean')) { fieldType = 'Boolean'; }
+                    else if (typeText.includes('Date')) { fieldType = 'Date'; }
+                    else if (typeText.includes('[]') || typeText.includes('Array')) { fieldType = 'Array'; }
+                    else if (typeText.includes('object')) { fieldType = 'Object'; }
+                  }
+
+                  fields.push({ name: propName, type: fieldType });
+                }
+              }
+            }
+
+            const typeAliases = sourceFile.getTypeAliases();
+            for (const typeAlias of typeAliases) {
+              if (typeAlias.getName() === typeName) {
+                const aliasTypeNode = typeAlias.getTypeNode();
+
+                // HANDLING TYPE LITERALS (OBJECTS WITH PROPERTIES)
+                if (aliasTypeNode && ts.Node.isTypeLiteral(aliasTypeNode)) {
+                  const members = aliasTypeNode.getMembers();
+
+                  for (const member of members) {
+                    if (ts.Node.isPropertySignature(member)) {
+                      const propName = member.getName();
+                      const memberTypeNode = member.getTypeNode();
+                      let fieldType: SchemaField['type'] = 'Unknown';
+
+                      if (memberTypeNode) {
+                        const typeText = memberTypeNode.getText();
+                        if (typeText.includes('string')) { fieldType = 'String'; }
+                        else if (typeText.includes('number')) { fieldType = 'Number'; }
+                        else if (typeText.includes('boolean')) { fieldType = 'Boolean'; }
+                        else if (typeText.includes('Date')) { fieldType = 'Date'; }
+                        else if (typeText.includes('[]') || typeText.includes('Array')) { fieldType = 'Array'; }
+                        else if (typeText.includes('object')) { fieldType = 'Object'; }
+                      }
+
+                      fields.push({ name: propName, type: fieldType });
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // SCENARIO 4: MONGOOSE SCHEMA: IF NO FIELDS FOUND YET, TRY TO EXTRACT FROM MONGOOSE SCHEMA
+
     if (fields.length === 0) {
-      // FINDING MONGOOSE SCHEMA DEFINITIONS
       const objectLiteralExpressions = sourceFile.getDescendantsOfKind(ts.SyntaxKind.ObjectLiteralExpression);
 
       for (const objLiteral of objectLiteralExpressions) {
         const parent = objLiteral.getParent();
-        if (parent && parent.getText().includes('mongoose.Schema') || parent.getText().includes('new Schema')) {
+
+        const isMongooseSchema = parent && (
+          parent.getText().includes('mongoose.Schema') ||
+          parent.getText().includes('new Schema') ||
+          (parent.getKind() === ts.SyntaxKind.NewExpression &&
+            parent.getText().includes('Schema'))
+        );
+
+        if (isMongooseSchema) {
+          console.log("Found Mongoose schema");
+
+          // EXTRACT PROPERTY NAMES AND TYPES FROM THE SCHEMA
           const properties = objLiteral.getProperties();
           for (const prop of properties) {
             if (ts.Node.isPropertyAssignment(prop)) {
@@ -74,260 +158,228 @@ export function extractKeysFromCode(code: string): SchemaField[] {
                 let nestedFields: SchemaField[] | undefined;
                 let refModel: string | undefined;
 
-                if (propValue && ts.Node.isObjectLiteralExpression(propValue)) {
-                  const typeProperty = propValue.getProperty('type');
+                // PROCESS PROPERTY VALUE
+                if (propValue) {
+                  if (ts.Node.isObjectLiteralExpression(propValue)) {
+                    const typeProperty = propValue.getProperty('type');
 
-                  if (typeProperty && ts.Node.isPropertyAssignment(typeProperty)) {
-                    const typeValue = typeProperty.getInitializer();
-                    if (typeValue) {
-                      const typeText = typeValue.getText();
-                      // DETERMINING FIELD TYPES FROM SCHEMA DEFINITIONS
-                      if (typeText.includes('String')) { fieldType = 'String'; }
-                      else if (typeText.includes('Number')) { fieldType = 'Number'; }
-                      else if (typeText.includes('Boolean')) { fieldType = 'Boolean'; }
-                      else if (typeText.includes('Date')) { fieldType = 'Date'; }
-                      else if (typeText.includes('Array') || typeText.startsWith('[')) { fieldType = 'Array'; }
-                      else if (typeText.includes('Object')) { fieldType = 'Object'; }
-                      else if (typeText.includes('Buffer')) { fieldType = 'Buffer'; }
-                      else if (typeText.includes('Map')) { fieldType = 'Map'; }
-                      // DETECTING OBJECTID REFERENCES
-                      else if (typeText.includes('ObjectId') || typeText.includes('Schema.Types.ObjectId')) {
-                        fieldType = 'ObjectId';
+                    if (typeProperty && ts.Node.isPropertyAssignment(typeProperty)) {
+                      const typeValue = typeProperty.getInitializer();
+                      if (typeValue) {
+                        const typeText = typeValue.getText();
 
-                        const refProperty = propValue.getProperty('ref');
-                        if (refProperty && ts.Node.isPropertyAssignment(refProperty)) {
-                          const refValue = refProperty.getInitializer();
-                          if (refValue && ts.Node.isStringLiteral(refValue)) {
-                            refModel = refValue.getLiteralValue();
-                          } else {
-                            refModel = refProperty.getInitializer()?.getText().replace(/['"]/g, '');
-                          }
-                        }
-                      }
-                    }
+                        // DETERMINING FIELD TYPE
+                        if (typeText.includes('String')) { fieldType = 'String'; }
+                        else if (typeText.includes('Number')) { fieldType = 'Number'; }
+                        else if (typeText.includes('Boolean')) { fieldType = 'Boolean'; }
+                        else if (typeText.includes('Date')) { fieldType = 'Date'; }
+                        else if (typeText.includes('Array') || typeText.startsWith('[')) { fieldType = 'Array'; }
+                        else if (typeText.includes('Object')) { fieldType = 'Object'; }
+                        else if (typeText.includes('Buffer')) { fieldType = 'String'; }
+                        else if (typeText.includes('Map')) { fieldType = 'Object'; }
+                        else if (typeText.includes('Mixed')) { fieldType = 'Object'; }
+                        else if (typeText.includes('ObjectId') ||
+                          typeText.includes('Schema.Types.ObjectId') ||
+                          typeText.includes('mongoose.Schema.Types.ObjectId')) {
+                          fieldType = 'ObjectId';
 
-                    // EXTRACTING ENUM VALUES
-                    const enumProperty = propValue.getProperty('enum');
-                    if (enumProperty && ts.Node.isPropertyAssignment(enumProperty)) {
-                      const enumValue = enumProperty.getInitializer();
-                      if (enumValue) {
-                        if (ts.Node.isArrayLiteralExpression(enumValue)) {
-                          enumValues = enumValue.getElements()
-                            .map(element => {
-                              if (ts.Node.isStringLiteral(element)) {
-                                return element.getLiteralValue();
-                              }
-                              return element.getText().replace(/['"]/g, '');
-                            });
-                        } else if (enumValue.getText().includes('Object.values')) {
-                          const enumName = enumValue.getText().match(/Object\.values\((\w+)\)/)?.[1];
-                          if (enumName) {
-                            const enumDeclarations = sourceFile.getDescendantsOfKind(ts.SyntaxKind.VariableDeclaration)
-                              .filter(decl => decl.getName() === enumName);
-
-                            if (enumDeclarations.length > 0) {
-                              const enumDecl = enumDeclarations[0];
-                              const enumInitializer = enumDecl.getInitializer();
-
-                              if (enumInitializer && ts.Node.isObjectLiteralExpression(enumInitializer)) {
-                                enumValues = enumInitializer.getProperties()
-                                  .filter(p => ts.Node.isPropertyAssignment(p))
-                                  .map(p => {
-                                    const propAssign = p as ts.PropertyAssignment;
-                                    const valueInit = propAssign.getInitializer();
-                                    if (valueInit && ts.Node.isStringLiteral(valueInit)) {
-                                      return valueInit.getLiteralValue();
-                                    }
-                                    return valueInit?.getText().replace(/['"]/g, '') || '';
-                                  });
-                              }
-                            }
-
-                            if (!enumValues || enumValues.length === 0) {
-                              enumValues = ['admin', 'user', 'guest'];
+                          // EXTRACTING THE REFERENCED MODEL
+                          const refProperty = propValue.getProperty('ref');
+                          if (refProperty && ts.Node.isPropertyAssignment(refProperty)) {
+                            const refValue = refProperty.getInitializer();
+                            if (refValue) {
+                              refModel = refValue.getText().replace(/['"]/g, '');
                             }
                           }
                         }
                       }
-                    }
-                  } else {
-                    fieldType = 'Object';
-                    nestedFields = [];
 
-                    // PROCESSING NESTED PROPERTIES
-                    const nestedProperties = propValue.getProperties();
-                    for (const nestedProp of nestedProperties) {
-                      if (ts.Node.isPropertyAssignment(nestedProp)) {
-                        const nestedPropName = nestedProp.getName();
-                        if (nestedPropName) {
-                          const nestedPropValue = nestedProp.getInitializer();
-                          let nestedFieldType: SchemaField['type'] = 'Unknown';
-                          let nestedRefModel: string | undefined;
-                          let nestedEnumValues: string[] | undefined;
-                          let deepNestedFields: SchemaField[] | undefined;
-
-                          if (nestedPropValue && ts.Node.isObjectLiteralExpression(nestedPropValue)) {
-                            const nestedTypeProperty = nestedPropValue.getProperty('type');
-                            if (nestedTypeProperty && ts.Node.isPropertyAssignment(nestedTypeProperty)) {
-                              const nestedTypeValue = nestedTypeProperty.getInitializer();
-                              if (nestedTypeValue) {
-                                const nestedTypeText = nestedTypeValue.getText();
-                                if (nestedTypeText.includes('String')) { nestedFieldType = 'String'; }
-                                else if (nestedTypeText.includes('Number')) { nestedFieldType = 'Number'; }
-                                else if (nestedTypeText.includes('Boolean')) { nestedFieldType = 'Boolean'; }
-                                else if (nestedTypeText.includes('Date')) { nestedFieldType = 'Date'; }
-                                else if (nestedTypeText.includes('Array') || nestedTypeText.startsWith('[')) { nestedFieldType = 'Array'; }
-                                else if (nestedTypeText.includes('Object')) { nestedFieldType = 'Object'; }
-                                else if (nestedTypeText.includes('Buffer')) { nestedFieldType = 'Buffer'; }
-                                else if (nestedTypeText.includes('Map')) { nestedFieldType = 'Map'; }
-                                else if (nestedTypeText.includes('ObjectId') || nestedTypeText.includes('Schema.Types.ObjectId')) {
-                                  nestedFieldType = 'ObjectId';
-                                  const nestedRefProperty = nestedPropValue.getProperty('ref');
-                                  if (nestedRefProperty && ts.Node.isPropertyAssignment(nestedRefProperty)) {
-                                    const nestedRefValue = nestedRefProperty.getInitializer();
-                                    if (nestedRefValue && ts.Node.isStringLiteral(nestedRefValue)) {
-                                      nestedRefModel = nestedRefValue.getLiteralValue();
-                                    } else {
-                                      nestedRefModel = nestedRefProperty.getInitializer()?.getText().replace(/['"]/g, '');
-                                    }
+                      // EXTRACTING ENUM VALUES
+                      const enumProperty = propValue.getProperty('enum');
+                      if (enumProperty && ts.Node.isPropertyAssignment(enumProperty)) {
+                        const enumValue = enumProperty.getInitializer();
+                        if (enumValue) {
+                          if (ts.Node.isArrayLiteralExpression(enumValue)) {
+                            enumValues = enumValue.getElements()
+                              .map(element => element.getText().replace(/['"]/g, ''));
+                          } else if (enumValue.getText().includes('Object.values')) {
+                            const objectName = enumValue.getText().match(/Object\.values\((\w+)\)/)?.[1];
+                            if (objectName) {
+                              // TRYING TO FIND THE OBJECT DECLARATION
+                              const variableDeclarations = sourceFile.getDescendantsOfKind(ts.SyntaxKind.VariableDeclaration);
+                              for (const varDecl of variableDeclarations) {
+                                if (varDecl.getName() === objectName) {
+                                  const initializer = varDecl.getInitializer();
+                                  if (initializer && ts.Node.isObjectLiteralExpression(initializer)) {
+                                    // EXTRACTING VALUES FROM THE OBJECT
+                                    enumValues = initializer.getProperties()
+                                      .filter(p => ts.Node.isPropertyAssignment(p))
+                                      .map(p => {
+                                        const init = (p as ts.PropertyAssignment).getInitializer();
+                                        return init ? init.getText().replace(/['"]/g, '') : '';
+                                      })
+                                      .filter(v => v !== '');
                                   }
                                 }
                               }
+                            }
+                          }
+                        }
+                      }
+                    } else {
+                      fieldType = 'Object';
+                      nestedFields = [];
 
-                              // CHECKING FOR ENUM VALUES IN NESTED PROPERTY
-                              const nestedEnumProperty = nestedPropValue.getProperty('enum');
-                              if (nestedEnumProperty && ts.Node.isPropertyAssignment(nestedEnumProperty)) {
-                                const nestedEnumValue = nestedEnumProperty.getInitializer();
-                                if (nestedEnumValue && ts.Node.isArrayLiteralExpression(nestedEnumValue)) {
-                                  nestedEnumValues = nestedEnumValue.getElements()
-                                    .map(element => {
-                                      if (ts.Node.isStringLiteral(element)) {
-                                        return element.getLiteralValue();
+                      // PROCESSING NESTED PROPERTIES
+                      const nestedProperties = propValue.getProperties();
+                      for (const nestedProp of nestedProperties) {
+                        if (ts.Node.isPropertyAssignment(nestedProp)) {
+                          const nestedPropName = nestedProp.getName();
+                          if (nestedPropName) {
+                            const nestedPropValue = nestedProp.getInitializer();
+                            let nestedFieldType: SchemaField['type'] = 'Unknown';
+                            let nestedRefModel: string | undefined;
+
+                            if (nestedPropValue && ts.Node.isObjectLiteralExpression(nestedPropValue)) {
+                              // EXTRACTING TYPE FROM NESTED PROPERTY
+                              const nestedTypeProperty = nestedPropValue.getProperty('type');
+                              if (nestedTypeProperty && ts.Node.isPropertyAssignment(nestedTypeProperty)) {
+                                const nestedTypeValue = nestedTypeProperty.getInitializer();
+                                if (nestedTypeValue) {
+                                  const nestedTypeText = nestedTypeValue.getText();
+                                  if (nestedTypeText.includes('String')) { nestedFieldType = 'String'; }
+                                  else if (nestedTypeText.includes('Number')) { nestedFieldType = 'Number'; }
+                                  else if (nestedTypeText.includes('Boolean')) { nestedFieldType = 'Boolean'; }
+                                  else if (nestedTypeText.includes('Date')) { nestedFieldType = 'Date'; }
+                                  else if (nestedTypeText.includes('Array')) { nestedFieldType = 'Array'; }
+                                  else if (nestedTypeText.includes('Object')) { nestedFieldType = 'Object'; }
+                                  else if (nestedTypeText.includes('ObjectId') ||
+                                    nestedTypeText.includes('Schema.Types.ObjectId') ||
+                                    nestedTypeText.includes('mongoose.Schema.Types.ObjectId')) {
+                                    nestedFieldType = 'ObjectId';
+
+                                    const nestedRefProperty = nestedPropValue.getProperty('ref');
+                                    if (nestedRefProperty && ts.Node.isPropertyAssignment(nestedRefProperty)) {
+                                      const nestedRefValue = nestedRefProperty.getInitializer();
+                                      if (nestedRefValue) {
+                                        nestedRefModel = nestedRefValue.getText().replace(/['"]/g, '');
                                       }
-                                      return element.getText().replace(/['"]/g, '');
-                                    });
+                                    }
+                                  }
                                 }
-                              }
-                            } else {
-                              nestedFieldType = 'Object';
-                              deepNestedFields = [];
+                              } else {
+                                nestedFieldType = 'Object';
+                                // RECURSIVELY PROCESSING DEEPER NESTING
+                                const deepNestedFields: SchemaField[] = [];
+                                const deepProperties = nestedPropValue.getProperties();
 
-                              // PROCESSING DEEPLY NESTED PROPERTIES
-                              const deepNestedProperties = nestedPropValue.getProperties();
-                              for (const deepNestedProp of deepNestedProperties) {
-                                if (ts.Node.isPropertyAssignment(deepNestedProp)) {
-                                  const deepNestedPropName = deepNestedProp.getName();
-                                  if (deepNestedPropName) {
-                                    const deepNestedPropValue = deepNestedProp.getInitializer();
-                                    let deepNestedFieldType: SchemaField['type'] = 'Unknown';
+                                for (const deepProp of deepProperties) {
+                                  if (ts.Node.isPropertyAssignment(deepProp)) {
+                                    const deepPropName = deepProp.getName();
+                                    if (deepPropName) {
+                                      const deepPropValue = deepProp.getInitializer();
+                                      let deepFieldType: SchemaField['type'] = 'Unknown';
 
-                                    if (deepNestedPropValue && ts.Node.isObjectLiteralExpression(deepNestedPropValue)) {
-                                      const deepNestedTypeProperty = deepNestedPropValue.getProperty('type');
-                                      if (deepNestedTypeProperty && ts.Node.isPropertyAssignment(deepNestedTypeProperty)) {
-                                        const deepNestedTypeValue = deepNestedTypeProperty.getInitializer();
-                                        if (deepNestedTypeValue) {
-                                          const deepNestedTypeText = deepNestedTypeValue.getText();
-                                          if (deepNestedTypeText.includes('String')) { deepNestedFieldType = 'String'; }
-                                          else if (deepNestedTypeText.includes('Number')) { deepNestedFieldType = 'Number'; }
-                                          else if (deepNestedTypeText.includes('Boolean')) { deepNestedFieldType = 'Boolean'; }
-                                          else if (deepNestedTypeText.includes('Date')) { deepNestedFieldType = 'Date'; }
-                                          else if (deepNestedTypeText.includes('Array')) { deepNestedFieldType = 'Array'; }
-                                          else if (deepNestedTypeText.includes('Object')) { deepNestedFieldType = 'Object'; }
-                                          else if (deepNestedTypeText.includes('ObjectId')) { deepNestedFieldType = 'ObjectId'; }
+                                      if (deepPropValue && ts.Node.isObjectLiteralExpression(deepPropValue)) {
+                                        const deepTypeProperty = deepPropValue.getProperty('type');
+                                        if (deepTypeProperty && ts.Node.isPropertyAssignment(deepTypeProperty)) {
+                                          const deepTypeValue = deepTypeProperty.getInitializer();
+                                          if (deepTypeValue) {
+                                            const deepTypeText = deepTypeValue.getText();
+                                            if (deepTypeText.includes('String')) { deepFieldType = 'String'; }
+                                            else if (deepTypeText.includes('Number')) { deepFieldType = 'Number'; }
+                                            else if (deepTypeText.includes('Boolean')) { deepFieldType = 'Boolean'; }
+                                            else if (deepTypeText.includes('Date')) { deepFieldType = 'Date'; }
+                                            else if (deepTypeText.includes('Array')) { deepFieldType = 'Array'; }
+                                            else if (deepTypeText.includes('Object')) { deepFieldType = 'Object'; }
+                                            else if (deepTypeText.includes('ObjectId') ||
+                                              deepTypeText.includes('Schema.Types.ObjectId')) {
+                                              deepFieldType = 'ObjectId';
+                                            }
+                                          }
                                         }
                                       }
-                                    }
 
-                                    deepNestedFields.push({
-                                      name: deepNestedPropName,
-                                      type: deepNestedFieldType
-                                    });
+                                      deepNestedFields.push({
+                                        name: deepPropName,
+                                        type: deepFieldType
+                                      });
+                                    }
                                   }
                                 }
-                              }
-                            }
-                          }
 
-                          nestedFields.push({
-                            name: nestedPropName,
-                            type: nestedFieldType,
-                            ref: nestedRefModel,
-                            enum: nestedEnumValues,
-                            nestedFields: deepNestedFields
-                          });
-                        }
-                      }
-                    }
-                  }
-                  // HANDLING ARRAY FIELDS
-                } else if (propValue && ts.Node.isArrayLiteralExpression(propValue)) {
-                  fieldType = 'Array';
-                  const arrayElements = propValue.getElements();
-
-                  if (arrayElements.length > 0) {
-                    const firstElement = arrayElements[0];
-
-                    if (ts.Node.isObjectLiteralExpression(firstElement)) {
-                      const typeProperty = firstElement.getProperty('type');
-                      if (typeProperty && ts.Node.isPropertyAssignment(typeProperty)) {
-                        const typeValue = typeProperty.getInitializer();
-                        if (typeValue) {
-                          const typeText = typeValue.getText();
-                          nestedFields = [{
-                            name: 'arrayItem',
-                            type: 'Unknown'
-                          }];
-
-                          if (typeText.includes('String')) { nestedFields[0].type = 'String'; }
-                          else if (typeText.includes('Number')) { nestedFields[0].type = 'Number'; }
-                          else if (typeText.includes('Boolean')) { nestedFields[0].type = 'Boolean'; }
-                          else if (typeText.includes('Date')) { nestedFields[0].type = 'Date'; }
-                          else if (typeText.includes('Object')) { nestedFields[0].type = 'Object'; }
-                          else if (typeText.includes('ObjectId') || typeText.includes('Schema.Types.ObjectId')) {
-                            nestedFields[0].type = 'ObjectId';
-
-                            const refProperty = firstElement.getProperty('ref');
-                            if (refProperty && ts.Node.isPropertyAssignment(refProperty)) {
-                              const refValue = refProperty.getInitializer();
-                              if (refValue && ts.Node.isStringLiteral(refValue)) {
-                                nestedFields[0].ref = refValue.getLiteralValue();
-                              } else {
-                                nestedFields[0].ref = refProperty.getInitializer()?.getText().replace(/['"]/g, '');
-                              }
-                            }
-                          }
-                        }
-                      }
-                    } else if (ts.Node.isObjectLiteralExpression(propValue)) {
-                      // THIS MIGHT BE A COMPLEX ARRAY DEFINITION SUCH AS SOCIALMEDIA: [{ PLATFORM: {...}, URL: {...} }]
-                      fieldType = 'Array';
-                      nestedFields = [];
-                      const objectProperties = propValue.getProperties();
-                      for (const objProp of objectProperties) {
-                        if (ts.Node.isPropertyAssignment(objProp)) {
-                          const objPropName = objProp.getName();
-                          if (objPropName) {
-                            const objPropValue = objProp.getInitializer();
-                            let objPropType: SchemaField['type'] = 'Unknown';
-
-                            if (objPropValue && ts.Node.isObjectLiteralExpression(objPropValue)) {
-                              const typeProperty = objPropValue.getProperty('type');
-                              if (typeProperty && ts.Node.isPropertyAssignment(typeProperty)) {
-                                const typeValue = typeProperty.getInitializer();
-                                if (typeValue) {
-                                  const typeText = typeValue.getText();
-                                  if (typeText.includes('String')) { objPropType = 'String'; }
-                                  else if (typeText.includes('Number')) { objPropType = 'Number'; }
-                                  else if (typeText.includes('Boolean')) { objPropType = 'Boolean'; }
-                                  else if (typeText.includes('Date')) { objPropType = 'Date'; }
-                                  else if (typeText.includes('Object')) { objPropType = 'Object'; }
+                                if (deepNestedFields.length > 0) {
+                                  nestedFieldType = 'Object';
+                                  nestedFields.push({
+                                    name: nestedPropName,
+                                    type: nestedFieldType,
+                                    nestedFields: deepNestedFields
+                                  });
+                                  continue;
                                 }
                               }
                             }
 
                             nestedFields.push({
-                              name: objPropName,
-                              type: objPropType
+                              name: nestedPropName,
+                              type: nestedFieldType,
+                              ref: nestedRefModel
+                            });
+                          }
+                        }
+                      }
+                    }
+                  } else if (ts.Node.isArrayLiteralExpression(propValue)) {
+                    fieldType = 'Array';
+                    const arrayElements = propValue.getElements();
+
+                    if (arrayElements.length > 0) {
+                      const firstElement = arrayElements[0];
+
+                      if (ts.Node.isObjectLiteralExpression(firstElement)) {
+                        const typeProperty = firstElement.getProperty('type');
+                        if (typeProperty && ts.Node.isPropertyAssignment(typeProperty)) {
+                          const typeValue = typeProperty.getInitializer();
+                          if (typeValue) {
+                            const typeText = typeValue.getText();
+
+                            if (typeText.includes('ObjectId') ||
+                              typeText.includes('Schema.Types.ObjectId') ||
+                              typeText.includes('mongoose.Schema.Types.ObjectId')) {
+                              const refProperty = firstElement.getProperty('ref');
+                              if (refProperty && ts.Node.isPropertyAssignment(refProperty)) {
+                                const refValue = refProperty.getInitializer();
+                                if (refValue) {
+                                  refModel = refValue.getText().replace(/['"]/g, '');
+                                }
+                              }
+                            }
+                          }
+                        } else {
+                          // HANDLING THE SCENARIO THAT IT MIGHT BE AN ARRAY OF COMPLEX OBJECTS
+                          nestedFields = [];
+                          const arrayContent = firstElement.getText();
+
+                          // EXTRACTING NESTED FIELDS
+                          const nestedFieldRegex = /(\w+)\s*:\s*\{\s*type\s*:\s*([\w\.]+)/g;
+                          let nestedFieldMatch;
+
+                          while ((nestedFieldMatch = nestedFieldRegex.exec(arrayContent)) !== null) {
+                            const nestedName = nestedFieldMatch[1];
+                            const nestedTypeStr = nestedFieldMatch[2];
+
+                            let nestedType: SchemaField['type'] = 'Unknown';
+                            if (nestedTypeStr.includes('String')) { nestedType = 'String'; }
+                            else if (nestedTypeStr.includes('Number')) { nestedType = 'Number'; }
+                            else if (nestedTypeStr.includes('Boolean')) { nestedType = 'Boolean'; }
+                            else if (nestedTypeStr.includes('Date')) { nestedType = 'Date'; }
+                            else if (nestedTypeStr.includes('Array')) { nestedType = 'Array'; }
+                            else if (nestedTypeStr.includes('Object')) { nestedType = 'Object'; }
+                            else if (nestedTypeStr.includes('ObjectId')) { nestedType = 'ObjectId'; }
+
+                            nestedFields.push({
+                              name: nestedName,
+                              type: nestedType
                             });
                           }
                         }
@@ -350,14 +402,72 @@ export function extractKeysFromCode(code: string): SchemaField[] {
       }
     }
 
+    // SCENARIO 5: TYPESCRIPT INTERFACES/TYPES
+    if (fields.length === 0) {
+      const interfaces = sourceFile.getInterfaces();
+      for (const interfaceDecl of interfaces) {
+        const properties = interfaceDecl.getProperties();
+        for (const prop of properties) {
+          const propName = prop.getName();
+          const typeNode = prop.getTypeNode();
+          let fieldType: SchemaField['type'] = 'Unknown';
+
+          if (typeNode) {
+            const typeText = typeNode.getText();
+            if (typeText.includes('string')) { fieldType = 'String'; }
+            else if (typeText.includes('number')) { fieldType = 'Number'; }
+            else if (typeText.includes('boolean')) { fieldType = 'Boolean'; }
+            else if (typeText.includes('Date')) { fieldType = 'Date'; }
+            else if (typeText.includes('[]') || typeText.includes('Array')) { fieldType = 'Array'; }
+            else if (typeText.includes('object')) { fieldType = 'Object'; }
+          }
+
+          fields.push({ name: propName, type: fieldType });
+        }
+      }
+
+      // EXTRACTING FROM TYPE ALIASES
+      const typeAliases = sourceFile.getTypeAliases();
+      for (const typeAlias of typeAliases) {
+        const aliasTypeNode = typeAlias.getTypeNode();
+
+        if (aliasTypeNode && ts.Node.isTypeLiteral(aliasTypeNode)) {
+          const members = aliasTypeNode.getMembers();
+
+          for (const member of members) {
+            if (ts.Node.isPropertySignature(member)) {
+              const propName = member.getName();
+              const memberTypeNode = member.getTypeNode();
+              let fieldType: SchemaField['type'] = 'Unknown';
+
+              if (memberTypeNode) {
+                const typeText = memberTypeNode.getText();
+                if (typeText.includes('string')) { fieldType = 'String'; }
+                else if (typeText.includes('number')) { fieldType = 'Number'; }
+                else if (typeText.includes('boolean')) { fieldType = 'Boolean'; }
+                else if (typeText.includes('Date')) { fieldType = 'Date'; }
+                else if (typeText.includes('[]') || typeText.includes('Array')) { fieldType = 'Array'; }
+                else if (typeText.includes('object')) { fieldType = 'Object'; }
+              }
+
+              fields.push({ name: propName, type: fieldType });
+            }
+          }
+        }
+      }
+    }
+
+    // SCENARIO 6: FALLBACK TO REGEX
+    if (fields.length === 0) {
+      console.log("No fields found with AST parsing, trying regex fallback");
+      fields.push(...extractFieldsWithRegex(code));
+    }
+
   } catch (error) {
     console.error('Error extracting keys:', error);
-
-    // FALLBACK TO REGEX-BASED EXTRACTION IF TS-MORPH FAILS
     fields.push(...extractFieldsWithRegex(code));
   }
 
-  // REMOVING DUPLICATES BASED ON FIELD NAME
   const uniqueFields: SchemaField[] = [];
   const fieldNames = new Set<string>();
 
@@ -370,6 +480,7 @@ export function extractKeysFromCode(code: string): SchemaField[] {
 
   return uniqueFields;
 }
+
 
 // FALLBACK TO REGEX-BASED EXTRACTION
 function extractFieldsWithRegex(code: string): SchemaField[] {
@@ -607,299 +718,5 @@ function extractFieldsWithRegex(code: string): SchemaField[] {
 
   return fields;
 }
-// EXTRACTING FIELDS FROM TYPESCRIPT MODEL DEFINITIONS
-function extractFieldsFromTypeScriptModel(code: string): SchemaField[] {
-  const fields: SchemaField[] = [];
 
-  try {
-    // CHECKING FOR SCHEMA DEFINITION
-    const schemaRegex = /(?:const|let|var)\s+(\w+Schema)\s*=\s*new\s+(?:Schema|mongoose\.Schema)\s*\(\s*\{([^}]*)\}/gs;
-    const schemaMatch = schemaRegex.exec(code);
-
-    if (schemaMatch && schemaMatch[2]) {
-      const schemaContent = schemaMatch[2];
-
-      const fieldRegex = /(\w+)\s*:\s*\{\s*type\s*:\s*([\w\.]+)/g;
-      let fieldMatch;
-
-      while ((fieldMatch = fieldRegex.exec(schemaContent)) !== null) {
-        const name = fieldMatch[1];
-        const typeStr = fieldMatch[2];
-
-        let type: SchemaField['type'] = 'Unknown';
-        if (typeStr.includes('String')) { type = 'String'; }
-        else if (typeStr.includes('Number')) { type = 'Number'; }
-        else if (typeStr.includes('Boolean')) { type = 'Boolean'; }
-        else if (typeStr.includes('Date')) { type = 'Date'; }
-        else if (typeStr.includes('Array')) { type = 'Array'; }
-        else if (typeStr.includes('Object')) { type = 'Object'; }
-        else if (typeStr.includes('Buffer')) { type = 'Buffer'; }
-        else if (typeStr.includes('Map')) { type = 'Map'; }
-        else if (typeStr.includes('ObjectId') || typeStr.includes('Schema.Types.ObjectId')) { type = 'ObjectId'; }
-
-        const enumRegex = new RegExp(`${name}\\s*:\\s*\\{[^}]*enum\\s*:\\s*([^,}]+)`, 'g');
-        const enumMatch = enumRegex.exec(schemaContent);
-        let enumValues: string[] | undefined;
-
-        if (enumMatch && enumMatch[1]) {
-          const enumText = enumMatch[1].trim();
-
-          if (enumText.startsWith('[') && enumText.endsWith(']')) {
-            enumValues = enumText.slice(1, -1).split(',')
-              .map(val => val.trim().replace(/['"]/g, ''));
-          } else if (enumText.includes('Object.values')) {
-
-            const enumName = enumText.match(/Object\.values\((\w+)\)/)?.[1];
-            if (enumName) {
-              const enumDefRegex = new RegExp(`const\\s+${enumName}\\s*=\\s*\\{([^}]+)\\}`, 'g');
-              const enumDefMatch = enumDefRegex.exec(code);
-
-              if (enumDefMatch && enumDefMatch[1]) {
-                const enumDefContent = enumDefMatch[1];
-                const enumValueRegex = /\w+\s*:\s*["']([^"']+)["']/g;
-                let enumValueMatch;
-                enumValues = [];
-
-                while ((enumValueMatch = enumValueRegex.exec(enumDefContent)) !== null) {
-                  if (enumValueMatch[1]) {
-                    enumValues.push(enumValueMatch[1]);
-                  }
-                }
-              }
-
-              if (!enumValues || enumValues.length === 0) {
-                enumValues = ['ENUM_VALUE_PLACEHOLDER'];
-              }
-            }
-          }
-        }
-
-        fields.push({ name, type, enum: enumValues });
-      }
-
-      const objectIdRegex = /(\w+)\s*:\s*\{\s*type\s*:\s*(?:mongoose\.Schema\.Types\.ObjectId|Schema\.Types\.ObjectId)\s*,\s*ref\s*:\s*['"](\w+)['"]/g;
-      let refMatch;
-
-      while ((refMatch = objectIdRegex.exec(schemaContent)) !== null) {
-        const name = refMatch[1];
-        const refModel = refMatch[2];
-
-        if (!fields.some(f => f.name === name)) {
-          fields.push({
-            name,
-            type: 'ObjectId',
-            ref: refModel
-          });
-        }
-      }
-
-      const arrayFieldRegex = /(\w+)\s*:\s*\[\s*\{\s*type\s*:\s*([\w\.]+)/g;
-      let arrayFieldMatch;
-
-      while ((arrayFieldMatch = arrayFieldRegex.exec(schemaContent)) !== null) {
-        const name = arrayFieldMatch[1];
-        const typeStr = arrayFieldMatch[2];
-
-        if (fields.some(f => f.name === name)) {
-          continue;
-        }
-
-        let nestedType: SchemaField['type'] = 'Unknown';
-        if (typeStr.includes('String')) { nestedType = 'String'; }
-        else if (typeStr.includes('Number')) { nestedType = 'Number'; }
-        else if (typeStr.includes('Boolean')) { nestedType = 'Boolean'; }
-        else if (typeStr.includes('Date')) { nestedType = 'Date'; }
-        else if (typeStr.includes('Object')) { nestedType = 'Object'; }
-        else if (typeStr.includes('ObjectId') || typeStr.includes('Schema.Types.ObjectId')) { nestedType = 'ObjectId'; }
-
-        fields.push({
-          name,
-          type: 'Array',
-          nestedFields: [{ name: 'arrayItem', type: nestedType }]
-        });
-      }
-
-      const complexArrayRegex = /(\w+)\s*:\s*\[\s*\{([^[\]{}]*(?:\{[^{}]*\}[^[\]{}]*)*)\}\s*\]/g;
-      let complexArrayMatch;
-
-      while ((complexArrayMatch = complexArrayRegex.exec(schemaContent)) !== null) {
-        const name = complexArrayMatch[1];
-        const arrayContent = complexArrayMatch[2];
-
-        if (fields.some(f => f.name === name)) {
-          continue;
-        }
-
-        const nestedFields: SchemaField[] = [];
-        const nestedFieldRegex = /(\w+)\s*:\s*\{\s*type\s*:\s*([\w\.]+)/g;
-        let nestedFieldMatch;
-
-        while ((nestedFieldMatch = nestedFieldRegex.exec(arrayContent)) !== null) {
-          const nestedName = nestedFieldMatch[1];
-          const nestedTypeStr = nestedFieldMatch[2];
-
-          let nestedType: SchemaField['type'] = 'Unknown';
-          if (nestedTypeStr.includes('String')) { nestedType = 'String'; }
-          else if (nestedTypeStr.includes('Number')) { nestedType = 'Number'; }
-          else if (nestedTypeStr.includes('Boolean')) { nestedType = 'Boolean'; }
-          else if (nestedTypeStr.includes('Date')) { nestedType = 'Date'; }
-          else if (nestedTypeStr.includes('Object')) { nestedType = 'Object'; }
-          else if (nestedTypeStr.includes('ObjectId') || nestedTypeStr.includes('Schema.Types.ObjectId')) { nestedType = 'ObjectId'; }
-
-          nestedFields.push({ name: nestedName, type: nestedType });
-        }
-
-        const simplePropsRegex = /(\w+)\s*:\s*(String|Number|Boolean|Date|Object|ObjectId|Schema\.Types\.ObjectId)/g;
-        let simplePropMatch;
-
-        while ((simplePropMatch = simplePropsRegex.exec(arrayContent)) !== null) {
-          const propName = simplePropMatch[1];
-          const propTypeStr = simplePropMatch[2];
-
-          if (nestedFields.some(f => f.name === propName)) {
-            continue;
-          }
-
-          let propType: SchemaField['type'] = 'Unknown';
-          if (propTypeStr.includes('String')) { propType = 'String'; }
-          else if (propTypeStr.includes('Number')) { propType = 'Number'; }
-          else if (propTypeStr.includes('Boolean')) { propType = 'Boolean'; }
-          else if (propTypeStr.includes('Date')) { propType = 'Date'; }
-          else if (propTypeStr.includes('Object')) { propType = 'Object'; }
-          else if (propTypeStr.includes('ObjectId') || propTypeStr.includes('Schema.Types.ObjectId')) { propType = 'ObjectId'; }
-
-          nestedFields.push({ name: propName, type: propType });
-        }
-
-        if (nestedFields.length > 0) {
-          fields.push({ name, type: 'Array', nestedFields });
-        }
-      }
-
-      const nestedObjectRegex = /(\w+)\s*:\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}/g;
-      let nestedObjectMatch;
-
-      while ((nestedObjectMatch = nestedObjectRegex.exec(schemaContent)) !== null) {
-        const name = nestedObjectMatch[1];
-        const objectContent = nestedObjectMatch[2];
-
-        if (fields.some(f => f.name === name) || objectContent.includes('type:')) {
-          continue;
-        }
-
-        const nestedFields: SchemaField[] = [];
-        const nestedFieldRegex = /(\w+)\s*:\s*\{\s*type\s*:\s*([\w\.]+)/g;
-        let nestedFieldMatch;
-
-        while ((nestedFieldMatch = nestedFieldRegex.exec(objectContent)) !== null) {
-          const nestedName = nestedFieldMatch[1];
-          const nestedTypeStr = nestedFieldMatch[2];
-
-          let nestedType: SchemaField['type'] = 'Unknown';
-          if (nestedTypeStr.includes('String')) { nestedType = 'String'; }
-          else if (nestedTypeStr.includes('Number')) { nestedType = 'Number'; }
-          else if (nestedTypeStr.includes('Boolean')) { nestedType = 'Boolean'; }
-          else if (nestedTypeStr.includes('Date')) { nestedType = 'Date'; }
-          else if (nestedTypeStr.includes('Object')) { nestedType = 'Object'; }
-          else if (nestedTypeStr.includes('ObjectId') || nestedTypeStr.includes('Schema.Types.ObjectId')) { nestedType = 'ObjectId'; }
-
-          nestedFields.push({ name: nestedName, type: nestedType });
-        }
-
-        // MATCHING THE SIMPLE PROPERTY DEFINITIONS WITHOUT TYPE
-        const simplePropsRegex = /(\w+)\s*:\s*(String|Number|Boolean|Date|Object|ObjectId|Schema\.Types\.ObjectId)/g;
-        let simplePropMatch;
-
-        while ((simplePropMatch = simplePropsRegex.exec(objectContent)) !== null) {
-          const propName = simplePropMatch[1];
-          const propTypeStr = simplePropMatch[2];
-
-          if (nestedFields.some(f => f.name === propName)) {
-            continue;
-          }
-
-          let propType: SchemaField['type'] = 'Unknown';
-          if (propTypeStr.includes('String')) { propType = 'String'; }
-          else if (propTypeStr.includes('Number')) { propType = 'Number'; }
-          else if (propTypeStr.includes('Boolean')) { propType = 'Boolean'; }
-          else if (propTypeStr.includes('Date')) { propType = 'Date'; }
-          else if (propTypeStr.includes('Object')) { propType = 'Object'; }
-          else if (propTypeStr.includes('ObjectId') || propTypeStr.includes('Schema.Types.ObjectId')) { propType = 'ObjectId'; }
-
-          nestedFields.push({ name: propName, type: propType });
-        }
-
-        if (nestedFields.length > 0) {
-          fields.push({ name, type: 'Object', nestedFields });
-        }
-      }
-    }
-
-    // CHECKING TYPESCRIPT INTERFACE OR TYPE DEFINITIONS
-    const interfaceRegex = /interface\s+(\w+)\s*\{([^}]*)\}/g;
-    let interfaceMatch;
-
-    while ((interfaceMatch = interfaceRegex.exec(code)) !== null) {
-      const interfaceName = interfaceMatch[1];
-      const interfaceContent = interfaceMatch[2];
-
-      const requestContextRegex = new RegExp(`(req|request)\\s*:\\s*${interfaceName}`, 'i');
-      const isRequestInterface = requestContextRegex.test(code);
-
-      if (isRequestInterface || interfaceName.toLowerCase().includes('request')) {
-        const fieldRegex = /(\w+)\s*:\s*([^;]+);/g;
-        let fieldMatch;
-
-        while ((fieldMatch = fieldRegex.exec(interfaceContent)) !== null) {
-          const name = fieldMatch[1];
-          const typeStr = fieldMatch[2].trim();
-
-          let type: SchemaField['type'] = 'Unknown';
-          if (typeStr.includes('string')) { type = 'String'; }
-          else if (typeStr.includes('number')) { type = 'Number'; }
-          else if (typeStr.includes('boolean')) { type = 'Boolean'; }
-          else if (typeStr.includes('Date')) { type = 'Date'; }
-          else if (typeStr.includes('Array') || typeStr.includes('[]')) { type = 'Array'; }
-          else if (typeStr.includes('object') || typeStr.startsWith('{')) { type = 'Object'; }
-
-          fields.push({ name, type });
-        }
-      }
-    }
-    const typeDefRegex = /type\s+(\w+)\s*=\s*\{([^}]*)\}/g;
-    let typeDefMatch;
-
-    while ((typeDefMatch = typeDefRegex.exec(code)) !== null) {
-      const typeName = typeDefMatch[1];
-      const typeContent = typeDefMatch[2];
-
-      const requestContextRegex = new RegExp(`(req|request)\\s*:\\s*${typeName}`, 'i');
-      const isRequestType = requestContextRegex.test(code) || typeName.toLowerCase().includes('request');
-
-      if (isRequestType) {
-        const fieldRegex = /(\w+)\s*:\s*([^;]+);/g;
-        let fieldMatch;
-
-        while ((fieldMatch = fieldRegex.exec(typeContent)) !== null) {
-          const name = fieldMatch[1];
-          const typeStr = fieldMatch[2].trim();
-
-          let type: SchemaField['type'] = 'Unknown';
-          if (typeStr.includes('string')) { type = 'String'; }
-          else if (typeStr.includes('number')) { type = 'Number'; }
-          else if (typeStr.includes('boolean')) { type = 'Boolean'; }
-          else if (typeStr.includes('Date')) { type = 'Date'; }
-          else if (typeStr.includes('Array') || typeStr.includes('[]')) { type = 'Array'; }
-          else if (typeStr.includes('object') || typeStr.startsWith('{')) { type = 'Object'; }
-
-          fields.push({ name, type });
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Error extracting fields from TypeScript model:', error);
-  }
-
-  return fields;
-}
 

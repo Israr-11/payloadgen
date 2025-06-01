@@ -122,8 +122,8 @@ See more examples of PayloadGen in action
 PayloadGen respects your privacy
 
 - **100% Local Processing**: All code analysis and payload generation happen locally
-- **No Data Collection**: We don't collect, store, or transmit your code or generated payloads
-- **No Telemetry**: We don't track usage or collect analytics
+- **No Data Collection**: PayloadGen don not collect, store, or transmit your code or generated payloads
+- **No Telemetry**: PayloadGen do not track usage or collect analytics
 
 For more details, see our [Privacy Policy](https://github.com/Israr-11/payloadgen/blob/main/PRIVACY.md).
 

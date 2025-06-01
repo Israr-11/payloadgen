@@ -3,7 +3,7 @@
   "displayName": "PayloadGen ❴ ⚡ ❵",
   "publisher": "Israr",
   "description": "Generate realistic API payloads from Express/MongoDB schemas with one click",
-  "version": "1.0.0",
+  "version": "1.0.1",
  "author": {
     "name": "Israr Ahmed"
   },

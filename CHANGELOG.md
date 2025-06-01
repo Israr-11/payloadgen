@@ -13,3 +13,8 @@ All notable changes to the "PayloadGen" extension will be documented in this fil
 - Copy to clipboard and save to file functionality
 - Context menu integration
 ```
+
+## [1.0.3] - 2023-05-02
+
+### Changed
+- Publisher verified - improved installation experience with no security warnings

@@ -4,16 +4,9 @@
 
 **PayloadGen** is a powerful Visual Studio Code extension that scans JavaScript/TypeScript code and generates realistic dummy data for API testing. Perfect for **Express.js** and **Mongoose/MongoDB** workflows.
 
-**PayloadGen Demo:** [View Demo](https://res.cloudinary.com/cloudupload11111/image/upload/v1748714275/opensource/payloadgen_demos/Part_1_Gif_JS_Mongoose_wov2ja.gif)
+![PayloadGen Demo](https://raw.githubusercontent.com/Israr-11/payloadgen/main/resources/demo.gif)
 
 ---
-
-## Installation
-
-1. Open **VS Code**
-2. Press `Ctrl+Shift+X` or `Cmd+Shift+X` on Mac
-3. Search for `PayloadGen`
-4. Click **Install**
 
 ## How to Use
 

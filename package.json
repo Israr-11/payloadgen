@@ -1,13 +1,13 @@
 {
   "name": "api-payload-generator",
   "displayName": "PayloadGen ❴ ⚡ ❵",
-  "publisher": "Israr Ahmed",
-  "description": "Generate realistic dummy request bodies in Express (JS or TS) for MongoDB based schemas",
+  "publisher": "Israr",
+  "description": "Generate realistic API payloads from Express/MongoDB schemas with one click",
   "version": "1.0.0",
  "author": {
     "name": "Israr Ahmed"
   },
-  "license": "SEE LICENSE IN LICENSE.md",
+  "license": "SEE LICENSE IN LICENSE",
 
      "repository": {
     "type": "git",
@@ -36,9 +36,11 @@
     "mongodb",
     "typescript",
     "javascript",
-    "Nodejs"
+    "Nodejs",
+    "api-payload-generator",
+    "payloadgen"
   ],
-  "icon": "resources/logo-dark.png",
+  "icon": "resources/logo-light.png",
   "galleryBanner": {
     "color": "#1e1e1e",
     "theme": "dark"

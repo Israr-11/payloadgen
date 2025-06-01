@@ -2,8 +2,8 @@
   "name": "api-payload-generator",
   "displayName": "PayloadGen ❴ ⚡ ❵",
   "publisher": "Israr",
-  "description": "Generate realistic API payloads from Express/MongoDB schemas with one click",
-  "version": "1.0.1",
+  "description": "Generate realistic API payloads from Express/MongoDB schemas",
+  "version": "1.0.2",
  "author": {
     "name": "Israr Ahmed"
   },
@@ -40,7 +40,7 @@
     "api-payload-generator",
     "payloadgen"
   ],
-  "icon": "resources/logo-light.png",
+  "icon": "resources/logo-univeral.png",
   "galleryBanner": {
     "color": "#1e1e1e",
     "theme": "dark"
